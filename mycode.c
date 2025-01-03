@@ -2,17 +2,27 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <time.h>
 #define NUM_ITEM_MENU 5
 #define SIZE_USERNAME 50
 #define SIZE_PASSWORD 50
 #define SIZE_EMAIL 75
 
-typedef struct user_info
-{
+typedef struct {
 	char username[SIZE_USERNAME];
 	char password[SIZE_PASSWORD];
 	char email[SIZE_EMAIL];
 } user_info;
+
+typedef struct {
+	char username[SIZE_USERNAME];
+	int total_score;
+	int game_score;
+	int gold;
+	int number_game;
+	time_t start_time;
+} game_user_info;
+
 
 int is_login = 0; //0 means no login    1 means user_login    2 means Guest player
 user_info logged_in_user;
@@ -23,6 +33,7 @@ void draw_page_border();
 void draw_a_box(int height, int weight, int y, int x);
 void create_new_user();
 void login_user();
+void page_score_table();
 int get_and_check_username_and_pass_for_login();
 void forgot_password();
 int find_password(user_info* finding);
@@ -99,8 +110,11 @@ void design_initial_menu() {
 			case 1:
 				login_user();
 				break;
-			
-			default:
+			case 2:
+				//
+				break;
+			case 4:
+				page_score_table();
 				break;
 			}
 	}
@@ -502,6 +516,7 @@ int get_and_check_username_and_pass_for_login() {
 	if (fileptr == NULL) {
 		mvprintw(22, (COLS - 70) / 4, "***No user has been registered !!!!!!!\n");
 		getch();
+		fclose(fileptr);
 		return 0;
 	}
 
@@ -512,11 +527,13 @@ int get_and_check_username_and_pass_for_login() {
 		if(strcmp(check.username, user.username) == 0) {
 			if(strcmp(check.password, user.password) == 0) {
 				logged_in_user = check;
+				fclose(fileptr);
 				return 1;
 			}
 			else {
 				mvprintw(22, (COLS - 70) / 4, "***The input password is not for this user !!!!!!!\n");
 				getch();
+				fclose(fileptr);
 				return 0;
 			}
 		}
@@ -525,6 +542,7 @@ int get_and_check_username_and_pass_for_login() {
 	mvprintw(23, (COLS - 70) / 4, "***You can return to previous menu and create a new user OR you can play as a guest !!!!!!!\n");
 	refresh();
 	getch();
+	fclose(fileptr);
 	return 0;
 }
 void forgot_password() {
@@ -577,6 +595,7 @@ int find_password(user_info* finding) {
 	attron(COLOR_PAIR(2));
 	if(fileptr == NULL) {
 		mvprintw(22, (COLS - 70) / 4, "There isn't any registered users !!!!!!!\n");
+		fclose(fileptr);
 		return 0;
 	}
 
@@ -586,10 +605,12 @@ int find_password(user_info* finding) {
 		if (strcmp(check.username, finding->username) == 0) {
 			if (strcmp(check.email, finding->email) == 0) {
 				strcpy(finding->password, check.password);
+				fclose(fileptr);
 				return 1;
 			}
 			else {
 				mvprintw(22, (COLS - 70) / 4, "Not compatible username and email !!!!!!!\n");
+				fclose(fileptr);
 				return 0;
 			}
 			refresh();
@@ -598,6 +619,72 @@ int find_password(user_info* finding) {
 
 	mvprintw(22, (COLS - 70) / 4, "This user wasn't found !!!!!!!\n");
 	attroff(COLOR_PAIR(2));
+	fclose(fileptr);
 	return 0;
+
+}
+void page_score_table() {
+	init_pair(1, COLOR_GREEN, COLOR_BLACK);
+	init_pair(2, COLOR_RED, COLOR_BLACK);
+	init_pair(3, COLOR_BLUE, COLOR_BLACK);
+
+	clear();
+	draw_page_border();
+	refresh();
+	
+	FILE* fileptr = NULL;
+	fileptr = fopen("score.dat", "rb");
+
+	if (fileptr == NULL) {
+		mvprintw(5, 15, "Can not open the file!!\n");
+		getch();
+		return;
+	}
+
+	int num_read = 0;
+	int p = 1;
+	game_user_info* list = malloc(p * 100 * sizeof(game_user_info));
+
+	while (!feof(fileptr)) {
+		num_read += fread(&list[num_read], sizeof(game_user_info), 1, fileptr);
+		if (num_read >= p * 100) {
+			p++;
+			list = realloc(list, p * 100 * sizeof(game_user_info));
+		}
+	}
+	
+	int is_sorted = 0;
+	for(int i = 1; i < num_read && is_sorted == 0; i++) {
+		is_sorted = 1;
+		for (int j = 0; j < num_read - i; j++) {
+			if(list[j].total_score < list[j+1].total_score) {
+				game_user_info temp = list[j];
+				list[j] = list[j+1];
+				list[j+1] = temp;
+				is_sorted = 0;
+			}
+		}
+	}
+
+	attron(COLOR_PAIR(3));
+	mvprintw(4, 10, "%s", "You can press any key to return to the main menu...\n");
+	attroff(COLOR_PAIR(3));
+
+	attron(COLOR_PAIR(2));
+	mvprintw(8, COLS / 5, "%-10s%-30s%-17s%-10s%-20s%-15s", "Rank", "Username", "Total score", "Gold", "Number of game", "Experience");
+	attroff(COLOR_PAIR(2));
+
+	for(int i = 0; i < num_read; i++) {
+		if (is_login == 1 && strcmp(list[i].username, logged_in_user.username) == 0) mvprintw(10 + i, COLS / 5 - 8, "----->");
+		if (i == 0 || i == 1 || i == 2) attron(COLOR_PAIR(1) | A_ITALIC | A_BOLD);
+		time_t now = time(NULL);
+		mvprintw(10 + i, COLS / 5, "%-10d%-30s%-17d%-10d%-20d", i+1, list[i].username, list[i].total_score, 
+																list[i].gold, list[i].number_game);
+		printw("%-13.0fday" ,difftime(now, list[i].start_time) / (24*3600));
+		if (i == 0 || i == 1 || i == 2) attroff(COLOR_PAIR(1) | A_ITALIC | A_BOLD) ;
+	}
+
+	refresh();
+	getch();
 
 }
