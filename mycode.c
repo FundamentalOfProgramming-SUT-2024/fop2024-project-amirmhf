@@ -14,6 +14,9 @@ typedef struct user_info
 	char email[SIZE_EMAIL];
 } user_info;
 
+int is_login = 0; //0 means no login    1 means user_login    2 means Guest player
+user_info logged_in_user;
+
 void first_page();
 void design_initial_menu();
 void draw_page_border();
@@ -37,7 +40,6 @@ int main() {
 
 	first_page();
 	design_initial_menu();
-	create_new_user();
 	getch();
 	
 
@@ -63,6 +65,11 @@ void design_initial_menu() {
 	while (1){
 		clear();
 		draw_page_border();
+		attron(COLOR_PAIR(1));
+		if (is_login == 0) mvprintw(3, COLS - 50, "USER: No User");
+		else if (is_login == 1) mvprintw(3, COLS - 50, "USER: %-50s", logged_in_user.username);
+		else if (is_login == 2) mvprintw(3, COLS - 50, "USER: Guest player");
+		attroff(COLOR_PAIR(1));
 		attron(COLOR_PAIR(2) | A_BOLD | A_UNDERLINE);
 		mvprintw(3, 6, "Menu Game");
 		attroff(COLOR_PAIR(2) | A_BOLD | A_UNDERLINE);
@@ -76,7 +83,7 @@ void design_initial_menu() {
 			if (i == selection) attroff(A_REVERSE);
 		}
 		
-		short a = getch();
+		int a = getch();
 		if (a == KEY_UP) {
 			selection == 0 ? selection = 4 : selection-- ;
 		}
@@ -163,8 +170,9 @@ void create_new_user() {
 		}
 
 		attron(COLOR_PAIR(3));
-		short a = getch();
+		int a = getch();
 		refresh();
+		mvprintw(24, (COLS - 70) / 4, "***Move up or down to continue and press enter to write.\n");
 		switch (a) {
 			case KEY_UP:
 				selection == 0 ? selection = 4 : selection--;
@@ -208,7 +216,6 @@ void create_new_user() {
 							char* temper = input_without_initial_and_final_space(SIZE_USERNAME);
 							strcpy(new_user.username, temper);
 							free(temper);
-							mvprintw(24, (COLS - 70) / 4, "***Move up or down to continue.\n");
 							attron(COLOR_PAIR(2));
 							if ((flag & 1) == 1) {
 								mvprintw(18, COLS / 3, "You have enter your username.\n");
@@ -238,7 +245,6 @@ void create_new_user() {
 							char* temper = input_without_initial_and_final_space(SIZE_PASSWORD);
 							strcpy(new_user.password, temper);
 							free(temper);
-							mvprintw(24, (COLS - 70) / 4, "***Move up or down to continue.\n");
 							attron(COLOR_PAIR(2));
 							if ((flag & 2) == 2) {
 								mvprintw(18, COLS / 3, "You have enter your password.\n");
@@ -268,7 +274,6 @@ void create_new_user() {
 							char* temper = input_without_initial_and_final_space(SIZE_EMAIL+1);
 							strcpy(new_user.email, temper);
 							free(temper);
-							mvprintw(24, (COLS - 70) / 4, "***Move up or down to continue.\n");
 							attron(COLOR_PAIR(2));
 							if ((flag & 4) == 4) {
 								mvprintw(18, COLS / 3, "You have enter your email.\n");
@@ -318,8 +323,8 @@ int check_username(char* username) {
 		user_info check;
 		fread(&check, sizeof(user_info), 1, fileptr);
 		if (strcmp(check.username, username) == 0) {
-			mvprintw(18, COLS / 3, "This username has been used previously !!!!!!\n");
 			mvprintw(19, COLS / 3, "Please Enter a new username");
+			mvprintw(20, COLS / 3, "This username has been used previously !!!!!!\n");
 			return 0;
 		}
 	}
@@ -379,7 +384,7 @@ int check_email(char* email) {
 char* input_without_initial_and_final_space(int max_size) {
     char* output = malloc(max_size * sizeof(char));
     char temp;
-    short i = 0;
+    int i = 0;
     while ((temp = getch()) == ' ');
     while (temp != '\n') {
         output[i++] = temp;
@@ -412,9 +417,14 @@ void login_user() {
 				mvprintw(8, (COLS - 30) / 2, "%s", login_menu[i]);
 				attroff(COLOR_PAIR(2) | A_UNDERLINE);
 			}
-			else if (i == 3 || i == 4) {
+			else if (i == 3) {
 				attron(COLOR_PAIR(1) | A_UNDERLINE | A_BOLD);
-				mvprintw(12 + i, (COLS - 30) / 2, "%s", login_menu[i]);
+				mvprintw(15, (COLS - 30) / 2, "%s", login_menu[i]);
+				attroff(COLOR_PAIR(1) | A_UNDERLINE | A_BOLD);
+			}
+			else if (i == 4) {
+				attron(COLOR_PAIR(1) | A_UNDERLINE | A_BOLD);
+				mvprintw(17, (COLS - 30) / 2, "%s", login_menu[i]);
 				attroff(COLOR_PAIR(1) | A_UNDERLINE | A_BOLD);
 			}
 			else {
@@ -426,7 +436,7 @@ void login_user() {
 
 		mvprintw(20, (COLS - 70) / 4, "***Start entering data from your username !!!!!!!\n");
 
-		short a = getch();
+		int a = getch();
 		if (a == KEY_UP) {
 			selection == 0 ? selection = 4 : selection-- ;
 			if(selection == 2) selection--;
@@ -438,19 +448,29 @@ void login_user() {
 		else if (a == '\n') {
 			switch (selection)
 			{
-			case 0:
+			case 0:     //Return to previous menu
 				return;
-			case 1:
+			case 1:     //"Your UserName: ", "Your password: "
 			case 2:
 				if (get_and_check_username_and_pass_for_login()) {
-					//start_game();
+					attron(COLOR_PAIR(1));
+					mvprintw(25, (COLS - 70) / 2, "You have successfully logged in.\n");
+					mvprintw(26, (COLS - 70) / 2, "Press any button to return to previous menu and Start the game.\n");
+					attroff(COLOR_PAIR(1));
+					is_login = 1;
+					getch();
 				}
-				break;
-			case 3:
-				//start_game();
 				return;
-			case 4: 
-				forgot_password();
+			case 3:        //"Start Game as a Guest"
+					attron(COLOR_PAIR(1));
+					mvprintw(25, (COLS - 70) / 2, "Now you can play the game as a Guest player.\n");
+					mvprintw(26, (COLS - 70) / 2, "Press any button to return to previous menu and Start the game.\n");
+					attroff(COLOR_PAIR(1));
+					is_login = 2;
+					getch();
+				return;
+			case 4:        //"Forgot password"
+				forgot_password(); 
 				attroff(COLOR_PAIR(2));
 				mvprintw(24, COLS / 3, "Press any button to return the previous page....\n");
 				getch();
@@ -491,6 +511,7 @@ int get_and_check_username_and_pass_for_login() {
 
 		if(strcmp(check.username, user.username) == 0) {
 			if(strcmp(check.password, user.password) == 0) {
+				logged_in_user = check;
 				return 1;
 			}
 			else {
@@ -542,11 +563,11 @@ void forgot_password() {
 	if (find_password(&find)) {
 		attron(COLOR_PAIR(1));
 		mvprintw(22, COLS / 3, "Your password ----> ");
+		attroff(COLOR_PAIR(1));
 		attron(A_REVERSE);
 		printw("%s", find.password);
-		attron(A_REVERSE);
+		attroff(A_REVERSE);
 		refresh();
-		attroff(COLOR_PAIR(1));
 	}
 }
 int find_password(user_info* finding) {
