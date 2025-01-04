@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <time.h>
+#include <locale.h>
 #define NUM_ITEM_MENU 5
 #define SIZE_USERNAME 50
 #define SIZE_PASSWORD 50
@@ -34,6 +35,8 @@ void draw_a_box(int height, int weight, int y, int x);
 void create_new_user();
 void login_user();
 void page_score_table();
+void pre_game_menu();
+void setting_for_game();
 int get_and_check_username_and_pass_for_login();
 void forgot_password();
 int find_password(user_info* finding);
@@ -43,6 +46,7 @@ int check_email(char* email);
 char* input_without_initial_and_final_space(int max_size);
 
 int main() {
+	setlocale(LC_ALL, " ");
 	initscr();
 	noecho();
 	keypad(stdscr, 1);
@@ -51,11 +55,11 @@ int main() {
 
 	first_page();
 	design_initial_menu();
-	getch();
 	
 
 
 	endwin();
+	return 0;
 }
 
 void first_page() {
@@ -84,7 +88,7 @@ void design_initial_menu() {
 		attron(COLOR_PAIR(2) | A_BOLD | A_UNDERLINE);
 		mvprintw(3, 6, "Menu Game");
 		attroff(COLOR_PAIR(2) | A_BOLD | A_UNDERLINE);
-		char* initial_menu[] = {"Create a new user", "Login user", "Start the Game", "Profile", "Score table"};
+		char* initial_menu[] = {"Create a new user", "Login user", "Pre_Game Menu", "Score table", "Exit"};
 		
 		for (int i = 0; i < NUM_ITEM_MENU; i++) {
 			if (i == selection) attron(A_REVERSE);
@@ -96,10 +100,10 @@ void design_initial_menu() {
 		
 		int a = getch();
 		if (a == KEY_UP) {
-			selection == 0 ? selection = 4 : selection-- ;
+			selection == 0 ? selection = NUM_ITEM_MENU - 1 : selection-- ;
 		}
 		else if (a == KEY_DOWN) {
-			selection == 4 ? selection = 0 : selection++ ;
+			selection == NUM_ITEM_MENU - 1 ? selection = 0 : selection++ ;
 		}
 		else if (a == '\n') 
 			switch (selection)
@@ -111,11 +115,13 @@ void design_initial_menu() {
 				login_user();
 				break;
 			case 2:
-				//
+				pre_game_menu();
 				break;
-			case 4:
+			case 3:
 				page_score_table();
 				break;
+			case 4:
+				return;
 			}
 	}
 }
@@ -671,20 +677,138 @@ void page_score_table() {
 	attroff(COLOR_PAIR(3));
 
 	attron(COLOR_PAIR(2));
-	mvprintw(8, COLS / 5, "%-10s%-30s%-17s%-10s%-20s%-15s", "Rank", "Username", "Total score", "Gold", "Number of game", "Experience");
+	mvprintw(8, COLS / 6, "%-10s%-30s%-17s%-10s%-20s%-15s", "Rank", "Username", "Total score", "Gold", "Number of game", "Experience");
 	attroff(COLOR_PAIR(2));
 
 	for(int i = 0; i < num_read; i++) {
-		if (is_login == 1 && strcmp(list[i].username, logged_in_user.username) == 0) mvprintw(10 + i, COLS / 5 - 8, "----->");
-		if (i == 0 || i == 1 || i == 2) attron(COLOR_PAIR(1) | A_ITALIC | A_BOLD);
+		if (is_login == 1 && strcmp(list[i].username, logged_in_user.username) == 0) mvprintw(10 + i, COLS / 6 - 8, "----->");
+		if (i == 0 || i == 1 || i == 2) { attron(COLOR_PAIR(1) | A_ITALIC | A_BOLD); mvprintw(10 + i, COLS / 6 + 103, "<Legend>");}
 		time_t now = time(NULL);
-		mvprintw(10 + i, COLS / 5, "%-10d%-30s%-17d%-10d%-20d", i+1, list[i].username, list[i].total_score, 
+		mvprintw(10 + i, COLS / 6, "%-10d%-30s%-17d%-10d%-20d", i+1, list[i].username, list[i].total_score, 
 																list[i].gold, list[i].number_game);
-		printw("%-13.0fday" ,difftime(now, list[i].start_time) / (24*3600));
-		if (i == 0 || i == 1 || i == 2) attroff(COLOR_PAIR(1) | A_ITALIC | A_BOLD) ;
+		printw("%-10.0fday" ,difftime(now, list[i].start_time) / (24*3600));
+		if (i == 0 || i == 1 || i == 2) attroff(COLOR_PAIR(1) | A_ITALIC | A_BOLD);
 	}
 
 	refresh();
 	getch();
-
+}
+void pre_game_menu() {
+	init_pair(1, COLOR_GREEN, COLOR_BLACK);
+	init_pair(2, COLOR_RED, COLOR_BLACK);
+	clear();
+	int selection = 0;
+	while (1){
+		clear();
+		draw_page_border();
+		attron(COLOR_PAIR(2) | A_BOLD | A_UNDERLINE);
+		mvprintw(3, 6, "Pre_Game Menu");
+		attroff(COLOR_PAIR(2) | A_BOLD | A_UNDERLINE);
+		char* initial_menu[] = {"New game", "Resume Game", "Setting", "Scoreboard", "Return to previous menu"};
+		
+		for (int i = 0; i < 5; i++) {
+			if (i == selection) attron(A_REVERSE);
+			attron(COLOR_PAIR(1));
+			mvprintw(6 + i, 10, "%s", initial_menu[i]);
+			attroff(COLOR_PAIR(1));
+			if (i == selection) attroff(A_REVERSE);
+		}
+		
+		int a = getch();
+		if (a == KEY_UP) {
+			selection == 0 ? selection = 4 : selection-- ;
+		}
+		else if (a == KEY_DOWN) {
+			selection == 4 ? selection = 0 : selection++ ;
+		}
+		else if (a == '\n') 
+			switch (selection)
+				{
+				case 0:      //"New game"
+					//create_new_user();
+					break;
+				case 1:     //"Resume Game"
+					//login_user();
+					break;
+				case 2:     //"Setting"
+					setting_for_game();
+					break;
+				case 3:    //"Scoreboard"
+					page_score_table();
+					break;
+				case 4:     //"Return to previous menu"
+					return;
+				}
+	}
+}
+void setting_for_game() {
+	init_pair(1, COLOR_GREEN, COLOR_BLACK);
+	init_pair(2, COLOR_RED, COLOR_BLACK);
+	clear();
+	int selection = 0;
+	while (1){
+		clear();
+		draw_page_border();
+		attron(COLOR_PAIR(2) | A_BOLD | A_UNDERLINE);
+		mvprintw(3, 6, "Setting Game Menu");
+		attroff(COLOR_PAIR(2) | A_BOLD | A_UNDERLINE);
+		char* initial_menu[] = {"Easy", "Medium", "Hard", "Red", "Green", "Blue", "White", "Return to previous page"};
+		
+		mvprintw(10, 15, "choose Level of difficulty");
+		for (int i = 0; i < 3; i++) {
+			if (i == selection) attron(A_REVERSE);
+			attron(COLOR_PAIR(1));
+			mvprintw(11 + i, 20, "%s", initial_menu[i]);
+			attroff(COLOR_PAIR(1));
+			if (i == selection) attroff(A_REVERSE);
+		}
+		mvprintw(17, 15, "Select Color for Hero");
+		for (int i = 3; i < 8; i++) {
+			if (i == selection) attron(A_REVERSE);
+			attron(COLOR_PAIR(1));
+			if (i == 7) {
+				attron(COLOR_PAIR(2) | A_BOLD | A_UNDERLINE);
+				mvprintw(25, 25, "Return to previous page");
+				attroff(COLOR_PAIR(2) | A_BOLD | A_UNDERLINE);
+			}
+			else mvprintw(15 + i, 20, "%s", initial_menu[i]);
+			attroff(COLOR_PAIR(1));
+			if (i == selection) attroff(A_REVERSE);
+		}
+		
+		int a = getch();
+		if (a == KEY_UP) {
+			selection == 0 ? selection = 7 : selection-- ;
+		}
+		else if (a == KEY_DOWN) {
+			selection == 7 ? selection = 0 : selection++ ;
+		}
+		else if (a == '\n') 
+			switch (selection)
+				{
+				case 0:      //"Easy"
+					//
+					break;
+				case 1:     //"Medium"
+					//
+					break;
+				case 2:     //"Hard"
+					//
+					break;
+				case 3:    //""Red"
+					//
+					break;
+				case 4:     //"Green"
+					//
+					break;
+				case 5:     //"Blue"
+					//
+					break;
+				case 6:     //"White"
+					//
+					break;
+				case 7:     //"Return to previous page"
+					return;
+				}
+	}
 }
