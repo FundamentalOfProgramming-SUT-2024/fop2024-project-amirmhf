@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include <time.h>
 #include <locale.h>
+#include <wchar.h>
 #define NUM_ITEM_MENU 5
 #define SIZE_USERNAME 50
 #define SIZE_PASSWORD 50
@@ -24,6 +25,21 @@ typedef struct {
 	time_t start_time;
 } game_user_info;
 
+typedef struct {
+    int x;
+	int y;
+} location;
+
+typedef struct {
+    char room[12][12];
+    int height;
+    int wide;
+	location door;
+	int x;
+	int y;
+} room_info;
+
+
 
 int is_login = 0; //0 means no login    1 means user_login    2 means Guest player
 user_info logged_in_user;
@@ -31,7 +47,6 @@ user_info logged_in_user;
 void first_page();
 void design_initial_menu();
 void draw_page_border();
-void draw_a_box(int height, int weight, int y, int x);
 void create_new_user();
 void login_user();
 void page_score_table();
@@ -43,10 +58,11 @@ int find_password(user_info* finding);
 int check_username(char* username);
 int check_password(char* password);
 int check_email(char* email);
+void generate_room(room_info* a_room);
 char* input_without_initial_and_final_space(int max_size);
 
 int main() {
-	setlocale(LC_ALL, " ");
+	setlocale(LC_ALL, "");
 	initscr();
 	noecho();
 	keypad(stdscr, 1);
@@ -141,17 +157,6 @@ void draw_page_border() {
     }
 	attroff(COLOR_PAIR(1));
 }
-void draw_a_box(int height, int weight, int y, int x) {
-	for (int i = 0; i < weight; i++) {
-		mvprintw(y, x + i, "_");
-		mvprintw(y + height, x + i, "_");
-	}
-	for (int i = 1; i <= height; i++) {
-		mvprintw(y + i, x, "|");
-		mvprintw(y + i, x + weight, "|");
-	}
-
-}
 void create_new_user() {
 	
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
@@ -166,7 +171,6 @@ void create_new_user() {
 	while (1) {
 		clear();
 		draw_page_border();
-		//draw_a_box(7, 90, 9, COLS / 3 - 4);
 		attron(COLOR_PAIR(1) |  A_BOLD);
 		mvprintw(3, 6, "Creating a new user");
 		attroff(COLOR_PAIR(1) | A_BOLD);
@@ -682,7 +686,8 @@ void page_score_table() {
 
 	for(int i = 0; i < num_read; i++) {
 		if (is_login == 1 && strcmp(list[i].username, logged_in_user.username) == 0) mvprintw(10 + i, COLS / 6 - 8, "----->");
-		if (i == 0 || i == 1 || i == 2) { attron(COLOR_PAIR(1) | A_ITALIC | A_BOLD); mvprintw(10 + i, COLS / 6 + 103, "<Legend>");}
+		if (i == 0 || i == 1 || i == 2) { 
+			attron(COLOR_PAIR(1) | A_ITALIC | A_BOLD); mvprintw(10 + i, COLS / 6 + 103, "<Legend> "); addstr("\U0001f3c6");}
 		time_t now = time(NULL);
 		mvprintw(10 + i, COLS / 6, "%-10d%-30s%-17d%-10d%-20d", i+1, list[i].username, list[i].total_score, 
 																list[i].gold, list[i].number_game);
@@ -725,10 +730,10 @@ void pre_game_menu() {
 			switch (selection)
 				{
 				case 0:      //"New game"
-					//create_new_user();
+					//
 					break;
 				case 1:     //"Resume Game"
-					//login_user();
+					//
 					break;
 				case 2:     //"Setting"
 					setting_for_game();
@@ -811,4 +816,52 @@ void setting_for_game() {
 					return;
 				}
 	}
+}
+// void new_game() {
+// 	room_info* list_rooms[4];
+// }
+void generate_room(room_info* a_room) {
+	srand(time(NULL));
+    int a = (rand() % 6) + 6;
+    int b = (rand() % 6) + 6;
+
+    for (int i = 0; i < a; i++) {
+        for (int j = 0; j < b; j++) {
+            if (i == 0 || i == a - 1) a_room->room[i][j] = '_';
+            else if (j == 0 || j == b - 1) a_room->room[i][j] = '|';
+            else a_room->room[i][j] = '.';
+        }
+    }
+	a_room->height = a;
+	a_room->wide = b;
+
+	int c = rand() % 4;
+    int d;
+
+	switch (c) {
+        case 0:
+            d = rand() % (b - 2);
+            a_room->room[0][d+1] = '+';
+            a_room->door.y = 0;
+            a_room->door.x = d+1;
+            break;
+        case 1:
+            d = rand() % (a - 2);
+            a_room->room[d+1][b-1] = '+';
+            a_room->door.y = d+1;
+            a_room->door.x = b-1;
+            break;
+        case 2:
+            d = rand() % (b - 2);
+            a_room->room[a-1][d+1] = '+';
+            a_room->door.y = a-1;
+            a_room->door.x = d+1;
+            break;
+        case 3:
+            d = rand() % (a - 2);
+            a_room->room[d+1][0] = '+';
+            a_room->door.y = d+1;
+            a_room->door.x = 0;
+            break;
+    }
 }
