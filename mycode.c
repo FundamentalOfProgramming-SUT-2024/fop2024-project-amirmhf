@@ -5,6 +5,7 @@
 #include <time.h>
 #include <locale.h>
 #include <wchar.h>
+#include <unistd.h>
 #define NUM_ITEM_MENU 5
 #define SIZE_USERNAME 50
 #define SIZE_PASSWORD 50
@@ -31,13 +32,16 @@ typedef struct {
 } location;
 
 typedef struct {
-    char room[12][12];
+    char cell[12][12];
     int height;
     int wide;
 	location door;
-	int x;
-	int y;
+	location start_point;
 } room_info;
+
+typedef struct {
+	room_info room[6];
+} floor_info;
 
 
 
@@ -59,10 +63,13 @@ int check_username(char* username);
 int check_password(char* password);
 int check_email(char* email);
 void generate_room(room_info* a_room);
+void new_game();
+void generate_a_floor(floor_info*);
+void control_movement_and_inputs(floor_info floor, location* place);
 char* input_without_initial_and_final_space(int max_size);
 
 int main() {
-	setlocale(LC_ALL, "");
+	setlocale(LC_ALL, " ");
 	initscr();
 	noecho();
 	keypad(stdscr, 1);
@@ -684,7 +691,7 @@ void page_score_table() {
 	mvprintw(8, COLS / 6, "%-10s%-30s%-17s%-10s%-20s%-15s", "Rank", "Username", "Total score", "Gold", "Number of game", "Experience");
 	attroff(COLOR_PAIR(2));
 
-	for(int i = 0; i < num_read; i++) {
+	for(int i = 0; i < 5; i++) {
 		if (is_login == 1 && strcmp(list[i].username, logged_in_user.username) == 0) mvprintw(10 + i, COLS / 6 - 8, "----->");
 		if (i == 0 || i == 1 || i == 2) { 
 			attron(COLOR_PAIR(1) | A_ITALIC | A_BOLD); mvprintw(10 + i, COLS / 6 + 103, "<Legend> "); addstr("\U0001f3c6");}
@@ -730,7 +737,12 @@ void pre_game_menu() {
 			switch (selection)
 				{
 				case 0:      //"New game"
-					//
+					//clear();
+					//draw_page_border();
+					mvprintw(LINES/2, COLS / 2 - 20, "Making the game ready...\n");
+					mvprintw(LINES/2 + 1, COLS / 2 - 20, "Please wait for about 30 seconds...\n");
+					//getch();
+					new_game();
 					break;
 				case 1:     //"Resume Game"
 					//
@@ -817,9 +829,29 @@ void setting_for_game() {
 				}
 	}
 }
-// void new_game() {
-// 	room_info* list_rooms[4];
-// }
+void new_game() {
+	floor_info floor[4];
+	for(int i = 0; i < 4; i++) 
+		generate_a_floor(&floor[i]);
+
+	location position = {4, 4};
+	int g = 0;
+	while (1) {
+		clear();
+		mvprintw(1, 8, "The floor %d", g);
+		for(int k = 0; k < 6; k++) {
+			for (int i = 0; i < floor[g].room[k].height; i++) {
+				for(int j = 0; j < floor[g].room[k].wide; j++) {
+					mvprintw(floor[g].room[k].start_point.y + i, floor[g].room[k].start_point.x + j, "%c", floor[g].room[k].cell[i][j]);
+				}
+			}
+		}
+		attron(A_REVERSE);
+		mvprintw(position.y, position.x, "$");
+		attroff(A_REVERSE);
+		control_movement_and_inputs(floor[g], &position);
+	}
+}
 void generate_room(room_info* a_room) {
 	srand(time(NULL));
     int a = (rand() % 6) + 6;
@@ -827,9 +859,9 @@ void generate_room(room_info* a_room) {
 
     for (int i = 0; i < a; i++) {
         for (int j = 0; j < b; j++) {
-            if (i == 0 || i == a - 1) a_room->room[i][j] = '_';
-            else if (j == 0 || j == b - 1) a_room->room[i][j] = '|';
-            else a_room->room[i][j] = '.';
+            if (i == 0 || i == a - 1) a_room->cell[i][j] = '_';
+            else if (j == 0 || j == b - 1) a_room->cell[i][j] = '|';
+            else a_room->cell[i][j] = '.';
         }
     }
 	a_room->height = a;
@@ -841,27 +873,82 @@ void generate_room(room_info* a_room) {
 	switch (c) {
         case 0:
             d = rand() % (b - 2);
-            a_room->room[0][d+1] = '+';
+            a_room->cell[0][d+1] = '+';
             a_room->door.y = 0;
             a_room->door.x = d+1;
             break;
         case 1:
             d = rand() % (a - 2);
-            a_room->room[d+1][b-1] = '+';
+            a_room->cell[d+1][b-1] = '+';
             a_room->door.y = d+1;
             a_room->door.x = b-1;
             break;
         case 2:
             d = rand() % (b - 2);
-            a_room->room[a-1][d+1] = '+';
+            a_room->cell[a-1][d+1] = '+';
             a_room->door.y = a-1;
             a_room->door.x = d+1;
             break;
         case 3:
             d = rand() % (a - 2);
-            a_room->room[d+1][0] = '+';
+            a_room->cell[d+1][0] = '+';
             a_room->door.y = d+1;
             a_room->door.x = 0;
             break;
     }
+}
+void generate_a_floor(floor_info* a_floor) {
+	refresh();
+	for(int i = 0; i < 6; i++) {
+		generate_room(&a_floor->room[i]);
+		sleep(1);
+	}
+	int a;
+	int b;
+
+	for(int k = 0; k < 6; k++) {
+		a = (rand() % 25) + 5;
+		b = (rand() % 15) + 3 + k * 30;
+		a_floor->room[k].start_point.x = b;
+		a_floor->room[k].start_point.y = a;
+	}
+	
+	//rahpelleh
+
+
+	refresh();
+}
+void control_movement_and_inputs(floor_info floor, location* place) {
+	int ch = getch();
+	switch (ch)
+	{
+	case KEY_UP:
+		place->y -= 1;
+		break;
+	case KEY_DOWN:
+		place->y += 1;
+		break;
+	case KEY_RIGHT:
+		place->x += 1;
+		break;
+	case KEY_LEFT:
+		place->x -= 1;
+		break;
+	case KEY_NPAGE:
+		place->x += 1;
+		place->y += 1;
+		break;
+	case KEY_HOME:
+		place->x -= 1;
+		place->y -= 1;
+		break;
+	case KEY_PPAGE:
+		place->x += 1;
+		place->y -= 1;
+		break;
+	case KEY_END:
+		place->x -= 1;
+		place->y += 1;
+		break;
+	}
 }
