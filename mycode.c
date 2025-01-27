@@ -10,6 +10,12 @@
 #define SIZE_USERNAME 50
 #define SIZE_PASSWORD 50
 #define SIZE_EMAIL 75
+#define REGULAR_ROOM 0
+#define ENCHANT_ROOM 1
+#define TREASURE_ROOM 2
+#define REGULAR_DOOR 0
+#define PASSWORD_DOOR 1
+#define SECRET_DOOR 2
 
 typedef struct {
 	char username[SIZE_USERNAME];
@@ -32,15 +38,19 @@ typedef struct {
 } location;
 
 typedef struct {
+	int room_type;  //REGULAR_ROOM   ENCHANT_ROOM   TREASURE_ROOM
+	int door_type[3];   //0 normal    1 secret   2 password
     char cell[12][12];
     int height;
     int wide;
-	location door;
+	location door[2]; //room first and last only one door
 	location start_point;
 } room_info;
 
 typedef struct {
 	room_info room[6];
+	location corridor[500];
+	int number_corridor;
 } floor_info;
 
 
@@ -62,10 +72,12 @@ int find_password(user_info* finding);
 int check_username(char* username);
 int check_password(char* password);
 int check_email(char* email);
-void generate_room(room_info* a_room);
+void generate_room(room_info* a_room, int number);
+char door_symbol(room_info* room, int n, int side);
 void new_game();
-void generate_a_floor(floor_info*);
-void control_movement_and_inputs(floor_info floor, location* place);
+void generate_a_floor(floor_info* a_floor, int number);
+int handle_corridor(floor_info* floor, int first, int second, int index);
+void control_movement_and_inputs(floor_info floor, location* place, int* num_floor);
 char* input_without_initial_and_final_space(int max_size);
 
 int main() {
@@ -702,6 +714,8 @@ void page_score_table() {
 		if (i == 0 || i == 1 || i == 2) attroff(COLOR_PAIR(1) | A_ITALIC | A_BOLD);
 	}
 
+	fclose(fileptr);
+	free(list);
 	refresh();
 	getch();
 }
@@ -739,8 +753,8 @@ void pre_game_menu() {
 				case 0:      //"New game"
 					//clear();
 					//draw_page_border();
-					mvprintw(LINES/2, COLS / 2 - 20, "Making the game ready...\n");
-					mvprintw(LINES/2 + 1, COLS / 2 - 20, "Please wait for about 30 seconds...\n");
+					mvprintw(LINES/2,     COLS / 2 - 20, "Making the game ready...\n");
+					mvprintw(LINES/2 + 1, COLS / 2 - 20, "Please wait for seconds...\n");
 					//getch();
 					new_game();
 					break;
@@ -830,30 +844,43 @@ void setting_for_game() {
 	}
 }
 void new_game() {
+	init_pair(1, COLOR_GREEN, COLOR_BLACK);
+	init_pair(2, COLOR_RED, COLOR_BLACK);
+
 	floor_info floor[4];
-	for(int i = 0; i < 4; i++) 
-		generate_a_floor(&floor[i]);
+	for(int i = 0; i < 4; i++) {
+		generate_a_floor(&floor[i], i);
+		sleep(1);
+	}
 
 	location position = {4, 4};
 	int g = 0;
 	while (1) {
 		clear();
-		mvprintw(1, 8, "The floor %d", g);
+		mvprintw(1, 8, "The floor %d", g+1);
 		for(int k = 0; k < 6; k++) {
 			for (int i = 0; i < floor[g].room[k].height; i++) {
 				for(int j = 0; j < floor[g].room[k].wide; j++) {
+					attron(COLOR_PAIR(2));
 					mvprintw(floor[g].room[k].start_point.y + i, floor[g].room[k].start_point.x + j, "%c", floor[g].room[k].cell[i][j]);
+					attroff(COLOR_PAIR(2));
 				}
 			}
 		}
+		for(int i = 0; i < floor[g].number_corridor; i++) {
+			attron(COLOR_PAIR(1));
+			mvprintw(floor[g].corridor[i].y, floor[g].corridor[i].x, "%c", '#');
+			attroff(COLOR_PAIR(1));
+		}
+
 		attron(A_REVERSE);
 		mvprintw(position.y, position.x, "$");
 		attroff(A_REVERSE);
-		control_movement_and_inputs(floor[g], &position);
+		control_movement_and_inputs(floor[g], &position, &g);
 	}
 }
-void generate_room(room_info* a_room) {
-	srand(time(NULL));
+void generate_room(room_info* a_room, int number) {
+	srand(time(NULL) + number * 23456);
     int a = (rand() % 6) + 6;
     int b = (rand() % 6) + 6;
 
@@ -867,58 +894,290 @@ void generate_room(room_info* a_room) {
 	a_room->height = a;
 	a_room->wide = b;
 
-	int c = rand() % 4;
+	int c = rand() % 4;  //random for location of first door
     int d;
 
 	switch (c) {
-        case 0:
+        case 0:    //door 1 is up
             d = rand() % (b - 2);
-            a_room->cell[0][d+1] = '+';
-            a_room->door.y = 0;
-            a_room->door.x = d+1;
+            a_room->cell[0][d+1] = door_symbol(a_room, 0, 1);
+            a_room->door[0].y = 0;
+            a_room->door[0].x = d+1;
+			if(number == 0 || number == 5) break;
+			d = rand() % (b - 2);   //creating second door---> down
+            a_room->cell[a-1][d+1] = door_symbol(a_room, 1, 3);
+            a_room->door[1].y = a-1;
+            a_room->door[1].x = d+1;
             break;
-        case 1:
+        case 1:    //door 1 is right
             d = rand() % (a - 2);
-            a_room->cell[d+1][b-1] = '+';
-            a_room->door.y = d+1;
-            a_room->door.x = b-1;
+            a_room->cell[d+1][b-1] = door_symbol(a_room, 0, 2);
+            a_room->door[0].y = d+1;
+            a_room->door[0].x = b-1;
+			if(number == 0 || number == 5) break;
+			d = rand() % (b - 2);   //creating second door---> down
+            a_room->cell[a-1][d+1] = door_symbol(a_room, 1, 3);
+            a_room->door[1].y = a-1;
+            a_room->door[1].x = d+1;
             break;
-        case 2:
+        case 2:    //door 1 is down
             d = rand() % (b - 2);
-            a_room->cell[a-1][d+1] = '+';
-            a_room->door.y = a-1;
-            a_room->door.x = d+1;
+            a_room->cell[a-1][d+1] = door_symbol(a_room, 0, 3);
+            a_room->door[0].y = a-1;
+            a_room->door[0].x = d+1;
+			if(number == 0 || number == 5) break;
+			d = rand() % (b - 2);    //creating second door---> up
+            a_room->cell[0][d+1] = door_symbol(a_room, 1, 1);
+            a_room->door[1].y = 0;
+            a_room->door[1].x = d+1;
             break;
-        case 3:
+        case 3:    //door 1 is left
             d = rand() % (a - 2);
-            a_room->cell[d+1][0] = '+';
-            a_room->door.y = d+1;
-            a_room->door.x = 0;
+            a_room->cell[d+1][0] = door_symbol(a_room, 0, 4);
+            a_room->door[0].y = d+1;
+            a_room->door[0].x = 0;
+			if(number == 0 || number == 5) break;
+			d = rand() % (a - 2);    //creating second door---> right
+            a_room->cell[d+1][b-1] = door_symbol(a_room, 1, 2);
+            a_room->door[1].y = d+1;
+            a_room->door[1].x = b-1;
             break;
     }
 }
-void generate_a_floor(floor_info* a_floor) {
+char door_symbol(room_info* room, int n, int side) {
+	if(room->door_type[n] == REGULAR_DOOR)  return '+';
+	if(room->door_type[n] == PASSWORD_DOOR) return '@';
+	if(room->door_type[n] == SECRET_DOOR) {
+		if(side == 1 || side == 3)      return '_';
+		else                            return '|';
+	}
+}
+void generate_a_floor(floor_info* a_floor, int number) {
 	refresh();
+	srand(time(NULL));
 	for(int i = 0; i < 6; i++) {
-		generate_room(&a_floor->room[i]);
-		sleep(1);
+		int a = rand() % 100;
+		switch (i) {    //determine type of room
+			case 0:
+				if(a < 50)     //50% probability
+					a_floor->room[0].room_type = REGULAR_ROOM;
+				else 
+					a_floor->room[0].room_type = ENCHANT_ROOM;
+				break;
+			case 1:
+				if(a_floor->room[i-1].door_type[0] == SECRET_DOOR) 
+					a_floor->room[i-1].room_type = ENCHANT_ROOM;
+				else
+					a_floor->room[i-1].room_type = REGULAR_ROOM;
+				break;
+			case 2:
+			case 3:
+			case 4:
+				if(a_floor->room[i-1].door_type[1] == SECRET_DOOR) 
+					a_floor->room[i-1].room_type = ENCHANT_ROOM;
+				else
+					a_floor->room[i-1].room_type = REGULAR_ROOM;
+				break;
+			case 5:
+				if(number == 3)     //last floor
+					a_floor->room[i].room_type = TREASURE_ROOM;
+				else
+					if(a_floor->room[i-1].door_type[1] == SECRET_DOOR) 
+						a_floor->room[i-1].room_type = ENCHANT_ROOM;
+					else
+						a_floor->room[i-1].room_type = REGULAR_ROOM;
+				break;
+		}
+
+		if(i == 0 || i == 5) {
+			if(a < 50)
+				a_floor->room[i].door_type[0] = REGULAR_DOOR;
+			else
+				a_floor->room[i].door_type[0] = PASSWORD_DOOR;
+		}
+		else if(a <= 25) {
+			a_floor->room[i].door_type[0] = REGULAR_DOOR; 
+			a_floor->room[i].door_type[1] = REGULAR_DOOR; 
+		}
+		else if(a > 25 && a <= 50) {
+			a_floor->room[i].door_type[0] = REGULAR_DOOR; 
+			a_floor->room[i].door_type[1] = PASSWORD_DOOR; 
+		}
+		else if(a > 50 && a < 75) {
+			a_floor->room[i].door_type[0] = PASSWORD_DOOR; 
+			a_floor->room[i].door_type[1] = SECRET_DOOR; 
+		}
+		else if(a > 75 && a < 100) {
+			a_floor->room[i].door_type[0] = REGULAR_DOOR; 
+			a_floor->room[i].door_type[1] = SECRET_DOOR; 
+		}
+		generate_room(&a_floor->room[i], i);
 	}
 	int a;
 	int b;
 
 	for(int k = 0; k < 6; k++) {
-		a = (rand() % 25) + 5;
+		a = (rand() % 25) + 6;
 		b = (rand() % 15) + 3 + k * 30;
 		a_floor->room[k].start_point.x = b;
 		a_floor->room[k].start_point.y = a;
 	}
 	
-	//rahpelleh
+	//raahro 
+	int index = 0;
+	for(int i = 0; i < 5; i++) {
+		index = handle_corridor(a_floor, i, i + 1, index);
+	}
+	a_floor->number_corridor = index;
 
+	while(1) {
+		int d = rand() % 6;
+		a = rand() % a_floor->room[d].height;  //this is y
+		b = rand() % a_floor->room[d].wide;    //this is x
+		if(a_floor->room[d].cell[b][a] == '.') {
+			a_floor->room[d].cell[b][a] = '<';
+			//save    //special color 
+			break;
+		}
+	}
 
 	refresh();
 }
-void control_movement_and_inputs(floor_info floor, location* place) {
+int handle_corridor(floor_info* floor, int first, int second, int index) {
+	int a = 1;
+	if(first == 0) a = 0;
+
+	floor->corridor[index].x = (floor->room[first].door[a].x) + floor->room[first].start_point.x;
+	floor->corridor[index].y = (floor->room[first].door[a].y) + floor->room[first].start_point.y;
+
+	if(floor->room[first].door[a].y == 0) {   //door is up
+		floor->corridor[index].y -= 1;
+		index += 1;
+		floor->corridor[index] = floor->corridor[index-1];
+		floor->corridor[index].y -= 1;
+		index += 1;
+	}
+	else if (floor->room[first].door[a].x == floor->room[first].wide - 1) {  //door is right
+		floor->corridor[index].x += 1;
+		index += 1;
+	}
+	else if (floor->room[first].door[a].y == floor->room[first].height - 1) {  //door is down
+		floor->corridor[index].y += 1;
+		index += 1;
+		floor->corridor[index] = floor->corridor[index-1];
+		floor->corridor[index].y += 1;
+		index += 1;
+	}
+	else if (floor->room[first].door[a].x == 0) {  //door is left
+		floor->corridor[index].x -= 1;
+		index += 1;
+		floor->corridor[index] = floor->corridor[index-1];
+		floor->corridor[index].x -= 1;
+		index += 1;
+		while(floor->corridor[index-1].y > floor->room[first].start_point.y - 3) {
+			floor->corridor[index] = floor->corridor[index-1];
+			floor->corridor[index].y -= 1;
+			index += 1;
+		}
+	}
+	
+	while(floor->corridor[index-1].x < (first + 1) * 30) {
+		floor->corridor[index] = floor->corridor[index - 1];
+		floor->corridor[index].x += 1;
+		index += 1;
+	}
+
+	while(floor->corridor[index-1].y > floor->room[second].door[0].y + floor->room[second].start_point.y) {
+		floor->corridor[index] = floor->corridor[index - 1];
+		floor->corridor[index].y -= 1;
+		index += 1;
+	}
+	while(floor->corridor[index-1].y < floor->room[second].door[0].y + floor->room[second].start_point.y) {
+		floor->corridor[index] = floor->corridor[index - 1];
+		floor->corridor[index].y += 1;
+		index++;
+	}
+
+	if(floor->room[second].door[0].y == 0) {   //door is up
+		while(floor->corridor[index-1].x < floor->room[second].start_point.x - 3) {
+			floor->corridor[index] = floor->corridor[index-1];
+			floor->corridor[index].x += 1;
+			index += 1;
+		}
+		floor->corridor[index] = floor->corridor[index - 1];
+		floor->corridor[index].y -= 1;
+		index += 1;
+		floor->corridor[index] = floor->corridor[index - 1];
+		floor->corridor[index].y -= 1;
+		index += 1;
+		while(floor->corridor[index-1].x < floor->room[second].door[0].x + floor->room[second].start_point.x) {
+			floor->corridor[index] = floor->corridor[index-1];
+			floor->corridor[index].x += 1;
+			index += 1;
+		}
+		floor->corridor[index] = floor->corridor[index - 1];
+		floor->corridor[index].y += 1;
+		index += 1;
+	}
+	else if (floor->room[second].door[0].x == floor->room[second].wide - 1) {  //door is right
+		while(floor->corridor[index-1].x < floor->room[second].start_point.x - 3) {
+			floor->corridor[index] = floor->corridor[index-1];
+			floor->corridor[index].x += 1;
+			index += 1;
+		}
+		while (floor->corridor[index-1].y > floor->room[second].start_point.y - 3) {
+			floor->corridor[index] = floor->corridor[index - 1];
+			floor->corridor[index].y -= 1;
+			index += 1;
+		}
+		while(floor->corridor[index-1].x < floor->room[second].door[0].x + floor->room[second].start_point.x + 3) {
+			floor->corridor[index] = floor->corridor[index-1];
+			floor->corridor[index].x += 1;
+			index += 1;
+		}
+		while (floor->corridor[index-1].y < floor->room[second].door[0].y + floor->room[second].start_point.y) {
+			floor->corridor[index] = floor->corridor[index - 1];
+			floor->corridor[index].y += 1;
+			index += 1;
+		}
+		floor->corridor[index] = floor->corridor[index-1];
+		floor->corridor[index].x -= 1;
+		index += 1;
+		floor->corridor[index] = floor->corridor[index-1];
+		floor->corridor[index].x -= 1;
+		index += 1;
+	}
+	else if (floor->room[second].door[0].y == floor->room[second].height - 1) {  //door is down
+		while(floor->corridor[index-1].x < floor->room[second].start_point.x - 3) {
+			floor->corridor[index] = floor->corridor[index-1];
+			floor->corridor[index].x += 1;
+			index += 1;
+		}
+		floor->corridor[index] = floor->corridor[index-1];
+		floor->corridor[index].y += 1;
+		index += 1;
+		floor->corridor[index] = floor->corridor[index-1];
+		floor->corridor[index].y += 1;
+		index += 1;
+		while(floor->corridor[index-1].x < floor->room[second].door[0].x + floor->room[second].start_point.x) {
+			floor->corridor[index] = floor->corridor[index-1];
+			floor->corridor[index].x += 1;
+			index += 1;
+		}
+		floor->corridor[index] = floor->corridor[index-1];
+		floor->corridor[index].y -= 1;
+		index += 1;
+	}
+	else if (floor->room[second].door[0].x == 0) {  //door is left
+		while(floor->corridor[index-1].x < floor->room[second].start_point.x - 1) {
+			floor->corridor[index] = floor->corridor[index-1];
+			floor->corridor[index].x += 1;
+			index += 1;
+		}
+	}
+	return index;
+}
+void control_movement_and_inputs(floor_info floor, location* place, int* num_floor) {
 	int ch = getch();
 	switch (ch)
 	{
@@ -949,6 +1208,12 @@ void control_movement_and_inputs(floor_info floor, location* place) {
 	case KEY_END:
 		place->x -= 1;
 		place->y += 1;
+		break;
+	case '+':
+		*num_floor += 1;
+		break;
+	case '-':
+		*num_floor -= 1;
 		break;
 	}
 }
