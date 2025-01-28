@@ -54,7 +54,7 @@ typedef struct {
     int height;
     int wide;
 	bool lock_door;
-	element trape[15];
+	element trap[15];
 	element enchant[10];
 	element gold[5];
 	element black_gold; 
@@ -70,10 +70,21 @@ typedef struct {
 	int open_corridor;
 } floor_info;
 
+typedef struct {
+	char name[20];
+	int number;
+} weapon_info;
+
+typedef struct {
+	char name[50];
+	int number;
+} enchant_info;
 
 
 int is_login = 0; //0 means no login    1 means user_login    2 means Guest player
 user_info logged_in_user;
+int color;   //1 green    2 red    3 golden    5 blue
+int difficulty;
 
 void first_page();
 void design_initial_menu();
@@ -96,11 +107,17 @@ void new_game();
 void start_location_random(location* start, room_info* room);
 void print_map_conditionally(floor_info* floor, location* place);
 void print_all_map(floor_info* floor);
+void print_one_element(int y, int x, char value);
 void generate_a_floor(floor_info* a_floor, int number);
 int handle_corridor(floor_info* floor, int first, int second, int index);
 bool check_location(floor_info* floor, location* place);
-void control_movement_and_inputs(floor_info* floor, location* place, int* num_floor);
+void control_movement_and_inputs(floor_info* floor, location* place, int* num_floor, weapon_info*, enchant_info*, int*);
 int current_room(floor_info* floor, location* place);
+void pickup_a_thing(room_info* room, location* place, weapon_info* weapon, enchant_info*);
+void pickup_a_gold(room_info* room, location* place, int* save_gold);
+void check_for_trap(room_info* room, location* place);
+void list_of_weapon(weapon_info* weapon);
+void list_of_enchant(enchant_info* enchant);
 void open_password_door(room_info* room, int door_number);
 char* input_without_initial_and_final_space(int max_size);
 
@@ -799,8 +816,10 @@ void pre_game_menu() {
 	}
 }
 void setting_for_game() {
+	init_color(11, 1000, 843, 0);   // طلایی 
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
 	init_pair(2, COLOR_RED, COLOR_BLACK);
+    init_pair(3, 11, COLOR_BLACK); // جفت طلایی
 	clear();
 	int selection = 0;
 	while (1){
@@ -809,7 +828,7 @@ void setting_for_game() {
 		attron(COLOR_PAIR(2) | A_BOLD | A_UNDERLINE);
 		mvprintw(3, 6, "Setting Game Menu");
 		attroff(COLOR_PAIR(2) | A_BOLD | A_UNDERLINE);
-		char* initial_menu[] = {"Easy", "Medium", "Hard", "Red", "Green", "Blue", "White", "Return to previous page"};
+		char* initial_menu[] = {"Easy", "Medium", "Hard", "Red", "Green", "Blue", "Golden", "Return to previous page"};
 		
 		mvprintw(10, 15, "choose Level of difficulty");
 		for (int i = 0; i < 3; i++) {
@@ -833,6 +852,9 @@ void setting_for_game() {
 			if (i == selection) attroff(A_REVERSE);
 		}
 		
+		attron(COLOR_PAIR(3));
+		mvprintw(3, 50, "<<Default is Medium and color is White!>>");
+
 		int a = getch();
 		if (a == KEY_UP) {
 			selection == 0 ? selection = 7 : selection-- ;
@@ -840,33 +862,43 @@ void setting_for_game() {
 		else if (a == KEY_DOWN) {
 			selection == 7 ? selection = 0 : selection++ ;
 		}
-		else if (a == '\n') 
-			switch (selection)
-				{
+		else if (a == '\n') {
+			switch (selection){
 				case 0:      //"Easy"
-					//
+					difficulty = 1;
+					mvprintw(5, 50, "You choose Easy mode!\n");
 					break;
 				case 1:     //"Medium"
-					//
+					difficulty = 0;
+					mvprintw(5, 50, "You choose Medium mode!\n");
 					break;
 				case 2:     //"Hard"
-					//
+					difficulty = -1;
+					mvprintw(5, 50, "You choose Hard mode!\n");
 					break;
-				case 3:    //""Red"
-					//
+				case 3:     //"Red"
+					color = 2;
+					mvprintw(5, 50, "You choose Red color!\n");
 					break;
 				case 4:     //"Green"
-					//
+					color = 1;
+					mvprintw(5, 50, "You choose Green color!\n");
 					break;
 				case 5:     //"Blue"
-					//
+					color = 5;
+					mvprintw(5, 50, "You choose Blue color!\n");
 					break;
-				case 6:     //"White"
-					//
+				case 6:     //"Golden"
+					color = 3;
+					mvprintw(5, 50, "You choose Golden color!\n");
 					break;
 				case 7:     //"Return to previous page"
+					attron(COLOR_PAIR(3));
 					return;
 				}
+			getch();
+		}
+		attron(COLOR_PAIR(3));
 	}
 }
 void new_game() {
@@ -890,47 +922,26 @@ void new_game() {
 	start_location_random(&position, &floor[0].room[0]);
 	
 	int g = 0;  //num_floor
+	int save_gold = 0;
+	weapon_info weapon;
+	weapon.number = 0;
+	enchant_info enchant;
+	enchant.number = 0;
+
 	while (1) {
 		clear();
 		print_map_conditionally(floor+g, &position);
 
-		attron(A_REVERSE | COLOR_PAIR(3));
+		attron(A_REVERSE | COLOR_PAIR(color));
 		mvprintw(position.y, position.x, "$");
-		attroff(A_REVERSE | COLOR_PAIR(3));
+		attroff(A_REVERSE | COLOR_PAIR(color));
 
 		int temp = g;
-		control_movement_and_inputs(floor+g, &position, &g);
+		control_movement_and_inputs(floor+g, &position, &g, &weapon, &enchant, &save_gold);
 		if(g != temp) {   //if floor was changed
 			start_location_random(&position, &floor[g].room[0]);
 		}
 	}
-
-
-		// mvprintw(1, 8, "The floor %d", g+1);
-		// for(int k = 0; k < 6; k++) {
-		// 	for (int i = 0; i < floor[g].room[k].height; i++) {
-		// 		for(int j = 0; j < floor[g].room[k].wide; j++) {
-		// 			switch(floor[g].room[k].room_type) {
-		// 				case REGULAR_ROOM:
-		// 					attron(COLOR_PAIR(5)); //blue
-		// 					break;
-		// 				case ENCHANT_ROOM:
-		// 					attron(COLOR_PAIR(2));  //red
-		// 					break;
-		// 				case TREASURE_ROOM:
-		// 					attron(COLOR_PAIR(4)); //yellow with white background
-		// 					break;
-		// 			}
-		// 			mvprintw(floor[g].room[k].start_point.y + i, floor[g].room[k].start_point.x + j, "%c", floor[g].room[k].cell[i][j]);
-		// 			attroff(COLOR_PAIR(2));
-		// 		}
-		// 	}
-		// }
-		// for(int i = 0; i < floor[g].number_corridor; i++) {
-		// 	attron(COLOR_PAIR(1));
-		// 	mvprintw(floor[g].corridor[i].y, floor[g].corridor[i].x, "%c", '#');
-		// 	attroff(COLOR_PAIR(1));
-		// }
 
 }
 void start_location_random(location* start, room_info* room) {
@@ -988,7 +999,8 @@ void print_map_conditionally(floor_info* floor, location* place) {
 						attron(COLOR_PAIR(4)); //yellow with white background
 						break;
 				}
-				mvprintw(floor->room[k].start_point.y + i, floor->room[k].start_point.x + j, "%c", floor->room[k].cell[i][j]);
+				//mvprintw(floor->room[k].start_point.y + i, floor->room[k].start_point.x + j, "%c", floor->room[k].cell[i][j]);
+				print_one_element(floor->room[k].start_point.y + i, floor->room[k].start_point.x + j, floor->room[k].cell[i][j]);
 				attroff(COLOR_PAIR(5));
 			}
 		}
@@ -1001,9 +1013,7 @@ void print_map_conditionally(floor_info* floor, location* place) {
 		}
 	}
 	for(int i = 0; i <= floor->open_corridor + 5; i++) {
-		attron(COLOR_PAIR(1));
-		mvprintw(floor->corridor[i].y, floor->corridor[i].x, "%c", '#');
-		attroff(COLOR_PAIR(1));		
+		mvprintw(floor->corridor[i].y, floor->corridor[i].x, "\U00002591");
 	}
 }
 void print_all_map(floor_info* floor) {
@@ -1021,16 +1031,108 @@ void print_all_map(floor_info* floor) {
 							attron(COLOR_PAIR(4)); //yellow with white background
 							break;
 					}
-					mvprintw(floor->room[k].start_point.y + i, floor->room[k].start_point.x + j, "%c", floor->room[k].cell[i][j]);
+					//mvprintw(floor->room[k].start_point.y + i, floor->room[k].start_point.x + j, "%c", floor->room[k].cell[i][j]);
+					print_one_element(floor->room[k].start_point.y + i, floor->room[k].start_point.x + j, floor->room[k].cell[i][j]);
 					attroff(COLOR_PAIR(5));
 				}
 			}
 		}
 		for(int i = 0; i < floor->number_corridor; i++) {
-			attron(COLOR_PAIR(1));
-			mvprintw(floor->corridor[i].y, floor->corridor[i].x, "%c", '#');
-			attroff(COLOR_PAIR(1));
+			mvprintw(floor->corridor[i].y, floor->corridor[i].x, "\U00002591");
 		}
+}
+void print_one_element(int y, int x, char value) {
+	init_color(12, 1000, 1000, 0); //yellow
+	init_color(11, 1000, 843, 0);   // رنگ طلایی 
+	init_pair(1, COLOR_GREEN, COLOR_BLACK);         //-----> doors
+	init_pair(2, COLOR_RED, COLOR_BLACK);           
+    init_pair(3, 11, COLOR_BLACK); // جفت رنگ طلایی  //-----> Gold
+	init_pair(4, 11, COLOR_RED);                    //-----> Black_Gold
+	init_pair(5, COLOR_BLUE, COLOR_BLACK);          
+	init_pair(6, COLOR_MAGENTA, COLOR_BLACK);       //-----> Food, weapons
+	init_pair(7, COLOR_CYAN, COLOR_BLACK);          //-----> staircase
+	init_pair(8, 12, COLOR_BLACK);                  //-----> enchants
+
+	switch (value) {
+		case '<':  //staircase
+			attron(COLOR_PAIR(7));
+			mvprintw(y, x, "<");
+			attroff(COLOR_PAIR(7));
+			break;
+		case 'T': //trap before  open
+			mvprintw(y, x, ".");
+			break;
+		case 'G':  //GOLD
+			attron(COLOR_PAIR(3));
+			mvprintw(y, x, "\U000026c0");
+			attroff(COLOR_PAIR(3));
+			break;
+		case 'B':   //BLACK_GOLD
+			attron(COLOR_PAIR(4));
+			mvprintw(y, x, "\U000026c2");
+			attroff(COLOR_PAIR(4));
+			break;
+		case 'F':    //FOOD
+			attron(COLOR_PAIR(6));
+			mvprintw(y, x, "\U00002299");
+			attroff(COLOR_PAIR(6));
+			break;
+		case 'm':   //Mace
+			attron(COLOR_PAIR(6));
+			mvprintw(y, x, "\U00002692");
+			attroff(COLOR_PAIR(6));
+			break;
+		case 'd':    //Dagger ***
+			attron(COLOR_PAIR(6));
+			mvprintw(y, x, "\U0001F5E1");
+			attroff(COLOR_PAIR(6));
+			break;
+		case 'w':    //Magic Wand
+			attron(COLOR_PAIR(6));
+			mvprintw(y, x, "\U00002020");
+			attroff(COLOR_PAIR(6));
+			break;
+		case 'a':     //Normal Arrow
+			attron(COLOR_PAIR(6));
+			mvprintw(y, x, "\U000027B3");
+			attroff(COLOR_PAIR(6));
+			break;
+		case 's':      //Sword
+			attron(COLOR_PAIR(6));
+			mvprintw(y, x, "\U00002694");
+			attroff(COLOR_PAIR(6));
+			break;
+		case 'S':      //Speed enchant
+			attron(COLOR_PAIR(8));
+			mvprintw(y, x, "\U000026f7");
+			attroff(COLOR_PAIR(8));
+			break;
+		case 'D':      //Damage enchant
+			attron(COLOR_PAIR(8));
+			mvprintw(y, x, "\U00002620");
+			attroff(COLOR_PAIR(8));
+			break;
+		case 'H':      //Health enchant
+			attron(COLOR_PAIR(8));
+			mvprintw(y, x, "\U00002695");
+			attroff(COLOR_PAIR(8));
+			break;
+		case '+':      //door
+		case '?':      //door
+		case '@':      //door
+			attron(COLOR_PAIR(1));
+			mvprintw(y, x, "%c", value);
+			attroff(COLOR_PAIR(1));
+			break;
+		case '|':      //wall
+			mvprintw(y, x, "\U00002503");
+			break;
+		case '_':      //wall
+			mvprintw(y, x, "\U00002501");
+			break;
+		default :
+			mvprintw(y, x, "%c", value);
+	}
 }
 void generate_room(room_info* a_room, int number) {
 	srand(time(NULL) + number * 23456);
@@ -1046,6 +1148,10 @@ void generate_room(room_info* a_room, int number) {
     }
 	a_room->height = a;
 	a_room->wide = b;
+
+	for(int i = 0; i < 5; i++) {  //set all to 0
+		a_room->gold[i].available = false; 
+	}
 
 	int c = rand() % 4;  //random for location of first door
     int d;
@@ -1105,13 +1211,26 @@ void generate_room(room_info* a_room, int number) {
 		a_room->cell[b][a] = 'O';
 	}
 	
-	c = rand() % 3; //0 or 1 or 2           //FOOD
-	for(int i = 0; i < c ; i++) {
+	c = rand() % 3 + difficulty;            //FOOD      Easy--->1 to 3    Medium--->0 to 2     Hard--->0 to 1 
+	for(int i = 0; i < c ; i++) { 
 		a = rand() % (a_room->wide - 2) + 1;    //x
 		b = rand() % (a_room->height - 2) + 1;  //y
 		if(check_value(a_room, b, a, '.') == false) { i-= 1; continue; }
 		a_room->cell[b][a] = 'F';
 	}
+
+	c = rand() % 3; //0 or 1 or 2           //WEAPON 
+	for(int i = 0; i < c ; i++) {
+		a = rand() % (a_room->wide - 2) + 1;    //x
+		b = rand() % (a_room->height - 2) + 1;  //y
+		if(check_value(a_room, b, a, '.') == false) { i-= 1; continue; }
+		if(a % 5 == 0) { a_room->cell[b][a] = 'm'; continue;  } //Mace
+		if(a % 5 == 1) { a_room->cell[b][a] = 'd'; continue;  } //Dagger
+		if(a % 5 == 2) { a_room->cell[b][a] = 'w'; continue;  } //Magic Wand
+		if(a % 5 == 3) { a_room->cell[b][a] = 'a'; continue;  } //Normal Arrow
+		if(a % 5 == 4) { a_room->cell[b][a] = 's'; continue;  } //Sword
+	}
+
 	
 	switch (a_room->room_type) {
 		case REGULAR_ROOM:
@@ -1126,14 +1245,14 @@ void generate_room(room_info* a_room, int number) {
 				a_room->gold[i].value = rand() % 10 + 1;
 				a_room->cell[b][a] = 'G';
 			}
-			c = rand() % 2; //0 or 1         //TRAPE
+			c = rand() % 2; //0 or 1         //TRAP
 			for(int i = 0; i < c ; i++) {
 				a = rand() % (a_room->wide - 2) + 1;    //x
 				b = rand() % (a_room->height - 2) + 1;  //y
 				if(check_value(a_room, b, a, '.') == false) { i-= 1; continue; }
-				a_room->trape[i].available = TRUE;
-				a_room->trape[i].x = a;
-				a_room->trape[i].y = b;
+				a_room->trap[i].available = TRUE;
+				a_room->trap[i].x = a;
+				a_room->trap[i].y = b;
 				a_room->cell[b][a] = 'T';
 			}
 			c = rand() % 2; //0 or 1         //ENCHANT
@@ -1151,7 +1270,7 @@ void generate_room(room_info* a_room, int number) {
 			}
 			break;
 		case ENCHANT_ROOM:
-			c = rand() % 6 + 4;            //ENCHANT
+			c = rand() % 5 + 3; // 3 to 7    //ENCHANT
 			for(int i = 0; i < c ; i++) {
 				a = rand() % (a_room->wide - 2) + 1;    //x
 				b = rand() % (a_room->height - 2) + 1;  //y
@@ -1166,14 +1285,14 @@ void generate_room(room_info* a_room, int number) {
 			}
 			break;
 		case TREASURE_ROOM:
-			c = rand() % 10 + 5;            //TRAPE
+			c = rand() % 10 + 5;            //trap
 			for(int i = 0; i < c ; i++) {
 				a = rand() % (a_room->wide - 2) + 1;    //x
 				b = rand() % (a_room->height - 2) + 1;  //y
 				if(check_value(a_room, b, a, '.') == false) { i-= 1; continue; }
-				a_room->trape[i].available = TRUE;
-				a_room->trape[i].x = a;
-				a_room->trape[i].y = b;
+				a_room->trap[i].available = TRUE;
+				a_room->trap[i].x = a;
+				a_room->trap[i].y = b;
 				a_room->cell[b][a] = 'T';
 			}
 			break;
@@ -1199,10 +1318,13 @@ void generate_a_floor(floor_info* a_floor, int number) {
 		int a = rand() % 100;
 		switch (i) {    //determine type of room
 			case 0:
-				if(a < 50)     //50% probability
+				if(number == 0)     //first floor
 					a_floor->room[0].room_type = REGULAR_ROOM;
 				else 
-					a_floor->room[0].room_type = ENCHANT_ROOM;
+					if(a < 50)     //50% probability
+						a_floor->room[0].room_type = REGULAR_ROOM;
+					else 
+						a_floor->room[0].room_type = ENCHANT_ROOM;
 				break;
 			case 1:
 				if(a_floor->room[i-1].door_type[0] == SECRET_DOOR) 
@@ -1276,7 +1398,7 @@ void generate_a_floor(floor_info* a_floor, int number) {
 	a_floor->number_corridor = index;
 
 	while(1) {
-		int d = rand() % 6;
+		int d = rand() % 5 + 1;
 		a = rand() % a_floor->room[d].height;  //this is y
 		b = rand() % a_floor->room[d].wide;    //this is x
 		if(a_floor->room[d].cell[b][a] == '.') {
@@ -1286,6 +1408,18 @@ void generate_a_floor(floor_info* a_floor, int number) {
 		}
 	}
 
+	int c = rand() % 3 + 3;              //BLACK_GOLD (just in room 3 or 4 or 5)
+	while(1) {
+		a = rand() % (a_floor->room[c].wide - 2) + 1;    //x
+		b = rand() % (a_floor->room[c].height - 2) + 1;  //y
+		if(check_value(&a_floor->room[c], b, a, '.') == false) continue;
+		a_floor->room[c].black_gold.available = TRUE;
+		a_floor->room[c].black_gold.x = a;
+		a_floor->room[c].black_gold.y = b;
+		a_floor->room[c].black_gold.value = rand() % 20 + 50;  //This is between 50 to 70
+		a_floor->room[c].cell[b][a] = 'B';
+		break;
+	}
 	refresh();
 }
 int handle_corridor(floor_info* floor, int first, int second, int index) {
@@ -1426,9 +1560,15 @@ int handle_corridor(floor_info* floor, int first, int second, int index) {
 	}
 	return index;
 }
-void control_movement_and_inputs(floor_info* floor, location* place, int* num_floor) {
-	int ch = getch();
+void control_movement_and_inputs(floor_info* floor, location* place, int* num_floor, weapon_info* weapon, enchant_info* enchant, int* save_gold) {
+	init_pair(1, COLOR_GREEN, COLOR_BLACK);
 	int current;
+	current = current_room(floor, place);
+	if(current >= 0) {
+		pickup_a_gold(&floor->room[current], place, save_gold);
+		check_for_trap(&floor->room[current], place);
+	}
+	int ch = getch();
 	switch (ch)
 	{
 	case KEY_UP:
@@ -1469,14 +1609,30 @@ void control_movement_and_inputs(floor_info* floor, location* place, int* num_fl
 		if(check_location(floor, place) == false) { place->x += 1; place->y -= 1; }
 		break;
 	case '>':     //Next floor
-		current = current_room(floor, place);
 		if(check_value(&floor->room[current], place->y - floor->room[current].start_point.y, place->x - floor->room[current].start_point.x, '<'))
 			*num_floor += 1;
 		break;
 	case '<':     //Previous floor
-		current = current_room(floor, place);
 		if(check_value(&floor->room[current], place->y - floor->room[current].start_point.y, place->x - floor->room[current].start_point.x, '<'))
 			*num_floor -= 1;
+		break;
+	case 'g':     //get_a_thing
+		if(current >= 0) {
+			pickup_a_thing(&floor->room[current], place, weapon, enchant);
+		}
+		break;
+	case 'i':     //list for weapons
+		list_of_weapon(weapon);
+		break;
+	case 'e':     //list for enchants
+		list_of_enchant(enchant);
+		break;
+	case 'G':     //represent Gold saved
+		clear();
+		attron(COLOR_PAIR(1));
+		mvprintw(1, 10, "The amount of your collected Gold ---> %d", *save_gold);
+		attroff(COLOR_PAIR(1));
+		getch();
 		break;
 	case 'M':   //represent all the map
 		print_all_map(floor);
@@ -1485,8 +1641,9 @@ void control_movement_and_inputs(floor_info* floor, location* place, int* num_fl
 		attroff(A_REVERSE | COLOR_PAIR(3));
 		ch = getch();
 		if(ch == 'M') break;
-		else control_movement_and_inputs(floor, place, num_floor);
+		else control_movement_and_inputs(floor, place, num_floor, weapon, enchant, save_gold);
 	}
+
 }
 bool check_location(floor_info* floor, location* place) {
 	for(int i = 0; i < 6; i++) {
@@ -1532,6 +1689,166 @@ int current_room(floor_info* floor, location* place) {
 				return i;				
 		}
 	}
+	return -1;
+}
+void pickup_a_thing(room_info* room, location* place, weapon_info* weapon, enchant_info* enchant) {
+	init_pair(1, COLOR_GREEN, COLOR_BLACK);
+	attron(COLOR_PAIR(1));
+	switch (room->cell[place->y - room->start_point.y][place->x - room->start_point.x])
+	{
+	case 'm':      //Mace
+			mvprintw(1, 5, "Weapon was gotten :  Mace \U00002692");
+			weapon->name[weapon->number] = 'm';
+			weapon->number += 1;
+			room->cell[place->y - room->start_point.y][place->x - room->start_point.x] = '.';
+			getch();
+		break;
+	case 'd':      //Dagger
+			mvprintw(1, 5, "Weapon was gotten :  Dagger \U0001F5E1");
+			weapon->name[weapon->number] = 'd';
+			weapon->number += 1;
+			room->cell[place->y - room->start_point.y][place->x - room->start_point.x] = '.';
+			getch();
+		break;
+	case 'w':      //Magic Wand
+			mvprintw(1, 5, "Weapon was gotten :  Magic Wand \U00002020");
+			weapon->name[weapon->number] = 'w';
+			weapon->number += 1;
+			room->cell[place->y - room->start_point.y][place->x - room->start_point.x] = '.';
+			getch();
+		break;
+	case 'a':      //Normal Arrow
+			mvprintw(1, 5, "Weapon was gotten :  Normal Arrow \U000027B3");
+			weapon->name[weapon->number] = 'a';
+			weapon->number += 1;
+			room->cell[place->y - room->start_point.y][place->x - room->start_point.x] = '.';
+			getch();
+		break;
+	case 's':      //Sword
+			mvprintw(1, 5, "Weapon was gotten :  Sword \U00002694");
+			weapon->name[weapon->number] = 's';
+			weapon->number += 1;
+			room->cell[place->y - room->start_point.y][place->x - room->start_point.x] = '.';
+			getch();
+		break;
+	case 'S':      //Speed enchant
+			mvprintw(1, 5, "Weapon was gotten :  Speed enchant \U000026f7");
+			enchant->name[enchant->number] = 'S';
+			enchant->number += 1;
+			room->cell[place->y - room->start_point.y][place->x - room->start_point.x] = '.';
+			getch();
+		break;
+	case 'D':      //Damage enchant
+			mvprintw(1, 5, "enchant was gotten :  Damage enchant \U00002620");
+			enchant->name[enchant->number] = 'D';
+			enchant->number += 1;
+			room->cell[place->y - room->start_point.y][place->x - room->start_point.x] = '.';
+			getch();
+		break;
+	case 'H':      //Health enchant
+			mvprintw(1, 5, "enchant was gotten :  Health enchant \U00002695");
+			enchant->name[enchant->number] = 'H';
+			enchant->number += 1;
+			room->cell[place->y - room->start_point.y][place->x - room->start_point.x] = '.';
+			getch();
+		break;
+	}
+	attroff(COLOR_PAIR(1));
+}
+void pickup_a_gold(room_info* room, location* place, int* save_gold) {
+	init_pair(1, COLOR_GREEN, COLOR_BLACK);
+	attron(COLOR_PAIR(1));
+	int a = place->x - room->start_point.x;
+	int b = place->y - room->start_point.y;
+	if(room->cell[b][a] == 'G') {
+		for(int i = 0; i < 5; i++) {
+			if(	room->gold[i].x == a || room->gold[i].y == b ) {
+				*save_gold += room->gold[i].value;
+				mvprintw(1, 5, "Some Gold \U0001F4B0 was gotten with a value %d", room->gold[i].value);
+				room->cell[b][a] = '.';
+			}
+		}
+	}
+	else if (room->cell[b][a] == 'B') {
+		*save_gold += room->black_gold.value;
+		mvprintw(1, 5, "Some Black_Gold \U0001FA99 was gotten with a value %d", room->black_gold.value);
+		room->cell[b][a] = '.';
+	}
+	attroff(COLOR_PAIR(1));
+}
+void check_for_trap(room_info* room, location* place) {
+	init_pair(2, COLOR_RED, COLOR_BLACK);
+	attron(COLOR_PAIR(2));
+	int a = place->x - room->start_point.x;
+	int b = place->y - room->start_point.y;
+	if(room->cell[b][a] == 'T') {
+				mvprintw(1, 5, "You have fallen in Trap!");
+				//event in trap
+				room->cell[b][a] = '^';
+	}
+	attroff(COLOR_PAIR(2));
+}
+void list_of_weapon(weapon_info* weapon) {
+	clear();
+	init_pair(1, COLOR_GREEN, COLOR_BLACK);
+	attron(COLOR_PAIR(1));
+	if(weapon->number == 0) 
+		mvprintw(1, 10, "No weapon you have!\n");
+	char* name;
+	for(int i = 0; i < weapon->number; i++) {
+		switch (weapon->name[i]) {
+			case 'm':
+				name = "Mace \u2692";
+				break;
+			case 'd':
+				name = "Dagger \u2020";
+				break;
+			case 'w':
+				name = "Maic Wand \u269A";
+				break;
+			case 'a':
+				name = "Normal Arrow \u27B3";
+				break;
+			case 's':
+				name = "Sword \u2694";
+				break;
+		}
+		mvprintw(1, 10, "weapon list:\n");
+		if(i > 30) 
+			mvprintw(3+i-30, 70, "%d)     %s\n", i+1, name);
+		else 
+			mvprintw(3+i, 10, "%d)     %s\n", i+1, name);
+	}
+	attroff(COLOR_PAIR(1));
+	getch();
+}
+void list_of_enchant(enchant_info* enchant) {
+	clear();
+	init_pair(1, COLOR_GREEN, COLOR_BLACK);
+	attron(COLOR_PAIR(1));
+	if(enchant->number == 0) 
+		mvprintw(1, 10, "No enchant you have!\n");
+	char* name;
+	for(int i = 0; i < enchant->number; i++) {
+		switch (enchant->name[i]) {
+			case 'S':
+				name = "Speed \u26f7";
+				break;
+			case 'D':
+				name = "Damage \u2620";
+				break;
+			case 'H':
+				name = "Health \u2695";
+				break;
+		}
+		mvprintw(1, 10, "enchant list:\n");
+		if(i > 30) 
+			mvprintw(3+i-30, 70, "%d)     %s\n", i+1, name);
+		else 
+			mvprintw(3+i, 10, "%d)     %s\n", i+1, name);
+	}
+	attroff(COLOR_PAIR(1));
+	getch();
 }
 void open_password_door(room_info* room, int door_number) {
 	
