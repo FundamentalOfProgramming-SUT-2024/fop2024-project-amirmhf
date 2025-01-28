@@ -4,8 +4,11 @@
 #include <ctype.h>
 #include <time.h>
 #include <locale.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <wchar.h>
 #include <unistd.h>
+#include <stdbool.h>
 #define NUM_ITEM_MENU 5
 #define SIZE_USERNAME 50
 #define SIZE_PASSWORD 50
@@ -38,11 +41,23 @@ typedef struct {
 } location;
 
 typedef struct {
-	int room_type;  //REGULAR_ROOM   ENCHANT_ROOM   TREASURE_ROOM
-	int door_type[3];   //0 normal    1 secret   2 password
-    char cell[12][12];
+    int x;
+	int y;
+	int value; 
+	bool available;
+} element;
+
+typedef struct {
+	int room_type;      //REGULAR_ROOM   ENCHANT_ROOM    TREASURE_ROOM
+	int door_type[3];   //REGULAR_DOOR   PASSWORD_DOOR   SECRET_DOOR 
+    char cell[12][12]; 
     int height;
     int wide;
+	bool lock_door;
+	element trape[15];
+	element enchant[10];
+	element gold[5];
+	element black_gold; 
 	location door[2]; //room first and last only one door
 	location start_point;
 } room_info;
@@ -51,6 +66,8 @@ typedef struct {
 	room_info room[6];
 	location corridor[500];
 	int number_corridor;
+	int open_room;
+	int open_corridor;
 } floor_info;
 
 
@@ -73,20 +90,29 @@ int check_username(char* username);
 int check_password(char* password);
 int check_email(char* email);
 void generate_room(room_info* a_room, int number);
+bool check_value(room_info* room, int y, int x, char value);
 char door_symbol(room_info* room, int n, int side);
 void new_game();
+void start_location_random(location* start, room_info* room);
+void print_map_conditionally(floor_info* floor, location* place);
+void print_all_map(floor_info* floor);
 void generate_a_floor(floor_info* a_floor, int number);
 int handle_corridor(floor_info* floor, int first, int second, int index);
-void control_movement_and_inputs(floor_info floor, location* place, int* num_floor);
+bool check_location(floor_info* floor, location* place);
+void control_movement_and_inputs(floor_info* floor, location* place, int* num_floor);
+int current_room(floor_info* floor, location* place);
+void open_password_door(room_info* room, int door_number);
 char* input_without_initial_and_final_space(int max_size);
 
+
 int main() {
-	setlocale(LC_ALL, " ");
+	setlocale(LC_ALL, "");
 	initscr();
 	noecho();
 	keypad(stdscr, 1);
 	curs_set(0);
 	start_color();
+
 
 	first_page();
 	design_initial_menu();
@@ -706,7 +732,7 @@ void page_score_table() {
 	for(int i = 0; i < 5; i++) {
 		if (is_login == 1 && strcmp(list[i].username, logged_in_user.username) == 0) mvprintw(10 + i, COLS / 6 - 8, "----->");
 		if (i == 0 || i == 1 || i == 2) { 
-			attron(COLOR_PAIR(1) | A_ITALIC | A_BOLD); mvprintw(10 + i, COLS / 6 + 103, "<Legend> "); addstr("\U0001f3c6");}
+			attron(COLOR_PAIR(1) | A_ITALIC | A_BOLD); mvprintw(10 + i, COLS / 6 + 103, "<Legend> "); printw("\U0001f3c6");}
 		time_t now = time(NULL);
 		mvprintw(10 + i, COLS / 6, "%-10d%-30s%-17d%-10d%-20d", i+1, list[i].username, list[i].total_score, 
 																list[i].gold, list[i].number_game);
@@ -844,40 +870,167 @@ void setting_for_game() {
 	}
 }
 void new_game() {
+	init_color(11, 1000, 843, 0);   // رنگ طلایی 
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
 	init_pair(2, COLOR_RED, COLOR_BLACK);
+    init_pair(3, 11, COLOR_BLACK); // جفت رنگ طلایی
+	init_pair(4, COLOR_YELLOW, COLOR_WHITE);
+	init_pair(5, COLOR_BLUE, COLOR_BLACK);
+
 
 	floor_info floor[4];
 	for(int i = 0; i < 4; i++) {
 		generate_a_floor(&floor[i], i);
+		floor[i].open_room = 0;
+		floor[i].open_corridor = -6;
 		sleep(1);
 	}
 
-	location position = {4, 4};
-	int g = 0;
+	location position;
+	start_location_random(&position, &floor[0].room[0]);
+	
+	int g = 0;  //num_floor
 	while (1) {
 		clear();
-		mvprintw(1, 8, "The floor %d", g+1);
+		print_map_conditionally(floor+g, &position);
+
+		attron(A_REVERSE | COLOR_PAIR(3));
+		mvprintw(position.y, position.x, "$");
+		attroff(A_REVERSE | COLOR_PAIR(3));
+
+		int temp = g;
+		control_movement_and_inputs(floor+g, &position, &g);
+		if(g != temp) {   //if floor was changed
+			start_location_random(&position, &floor[g].room[0]);
+		}
+	}
+
+
+		// mvprintw(1, 8, "The floor %d", g+1);
+		// for(int k = 0; k < 6; k++) {
+		// 	for (int i = 0; i < floor[g].room[k].height; i++) {
+		// 		for(int j = 0; j < floor[g].room[k].wide; j++) {
+		// 			switch(floor[g].room[k].room_type) {
+		// 				case REGULAR_ROOM:
+		// 					attron(COLOR_PAIR(5)); //blue
+		// 					break;
+		// 				case ENCHANT_ROOM:
+		// 					attron(COLOR_PAIR(2));  //red
+		// 					break;
+		// 				case TREASURE_ROOM:
+		// 					attron(COLOR_PAIR(4)); //yellow with white background
+		// 					break;
+		// 			}
+		// 			mvprintw(floor[g].room[k].start_point.y + i, floor[g].room[k].start_point.x + j, "%c", floor[g].room[k].cell[i][j]);
+		// 			attroff(COLOR_PAIR(2));
+		// 		}
+		// 	}
+		// }
+		// for(int i = 0; i < floor[g].number_corridor; i++) {
+		// 	attron(COLOR_PAIR(1));
+		// 	mvprintw(floor[g].corridor[i].y, floor[g].corridor[i].x, "%c", '#');
+		// 	attroff(COLOR_PAIR(1));
+		// }
+
+}
+void start_location_random(location* start, room_info* room) {
+	while(1) {
+		start->x = rand() % (room->wide - 2) + 1;  //x
+		start->y = rand() % (room->height - 2) + 1;  //y
+		if(check_value(room, start->y, start->x, '.')) break;
+	} 
+	start->x += room->start_point.x;
+	start->y += room->start_point.y;
+}
+void print_map_conditionally(floor_info* floor, location* place) {
+	init_color(11, 1000, 843, 0);   // طلایی 
+	init_pair(1, COLOR_GREEN, COLOR_BLACK);
+	init_pair(2, COLOR_RED, COLOR_BLACK);
+    init_pair(3, 11, COLOR_BLACK); // جفت طلایی
+	init_pair(4, COLOR_YELLOW, COLOR_WHITE);
+	init_pair(5, COLOR_BLUE, COLOR_BLACK); 
+
+	clear();
+	for(int i = 0; i < 6; i++) {
+		if( place->x > floor->room[i].start_point.x  &&  place->x < floor->room[i].start_point.x + floor->room[i].wide - 1 &&
+			place->y > floor->room[i].start_point.y  &&  place->y < floor->room[i].start_point.y + floor->room[i].height - 1 ) {
+			if(i > floor->open_room)  floor->open_room = i;
+			break;				
+		}
+	}
+	if(floor->room[floor->open_room + 1].door[0].y == 0) {  //door is up
+		if( place->x == floor->room[floor->open_room + 1].door[0].x + floor->room[floor->open_room + 1].start_point.x &&
+			place->y == floor->room[floor->open_room + 1].start_point.y - 2)  floor->open_room += 1;
+	}
+	else if(floor->room[floor->open_room + 1].door[0].x == floor->room[floor->open_room + 1].wide - 1) {    //door is right
+		if( place->x == floor->room[floor->open_room + 1].door[0].x + floor->room[floor->open_room + 1].start_point.x + 2 &&
+			place->y == floor->room[floor->open_room + 1].door[0].y +  floor->room[floor->open_room + 1].start_point.y)  floor->open_room += 1;
+	}
+	else if(floor->room[floor->open_room + 1].door[0].y == floor->room[floor->open_room + 1].height - 1) {   //door is down
+		if( place->x == floor->room[floor->open_room + 1].door[0].x + floor->room[floor->open_room + 1].start_point.x &&
+			place->y == floor->room[floor->open_room + 1].door[0].y +  floor->room[floor->open_room + 1].start_point.y + 2)  floor->open_room += 1;
+	}
+	else if(floor->room[floor->open_room + 1].door[0].x == 0) {   //door is left
+		if( place->x == floor->room[floor->open_room + 1].start_point.x - 2 &&
+			place->y == floor->room[floor->open_room + 1].door[0].y +  floor->room[floor->open_room + 1].start_point.y)  floor->open_room += 1;		
+	}
+	for(int k = 0; k <= floor->open_room; k++) {   //number of rooms that should be printed
+		for (int i = 0; i < floor->room[k].height; i++) {
+			for(int j = 0; j < floor->room[k].wide; j++) {
+				switch(floor->room[k].room_type) {
+					case REGULAR_ROOM:
+						attron(COLOR_PAIR(5)); //blue
+						break;
+					case ENCHANT_ROOM:
+						attron(COLOR_PAIR(2));  //red
+						break;
+					case TREASURE_ROOM:
+						attron(COLOR_PAIR(4)); //yellow with white background
+						break;
+				}
+				mvprintw(floor->room[k].start_point.y + i, floor->room[k].start_point.x + j, "%c", floor->room[k].cell[i][j]);
+				attroff(COLOR_PAIR(5));
+			}
+		}
+	}
+	
+	for(int i = 0; i < floor->number_corridor; i++) {
+		if(place->x == floor->corridor[i].x  &&  place->y == floor->corridor[i].y) {
+			if(i > floor->open_corridor) floor->open_corridor = i;
+			break;
+		}
+	}
+	for(int i = 0; i <= floor->open_corridor + 5; i++) {
+		attron(COLOR_PAIR(1));
+		mvprintw(floor->corridor[i].y, floor->corridor[i].x, "%c", '#');
+		attroff(COLOR_PAIR(1));		
+	}
+}
+void print_all_map(floor_info* floor) {
 		for(int k = 0; k < 6; k++) {
-			for (int i = 0; i < floor[g].room[k].height; i++) {
-				for(int j = 0; j < floor[g].room[k].wide; j++) {
-					attron(COLOR_PAIR(2));
-					mvprintw(floor[g].room[k].start_point.y + i, floor[g].room[k].start_point.x + j, "%c", floor[g].room[k].cell[i][j]);
-					attroff(COLOR_PAIR(2));
+			for (int i = 0; i < floor->room[k].height; i++) {
+				for(int j = 0; j < floor->room[k].wide; j++) {
+					switch(floor->room[k].room_type) {
+						case REGULAR_ROOM:
+							attron(COLOR_PAIR(5)); //blue
+							break;
+						case ENCHANT_ROOM:
+							attron(COLOR_PAIR(2));  //red
+							break;
+						case TREASURE_ROOM:
+							attron(COLOR_PAIR(4)); //yellow with white background
+							break;
+					}
+					mvprintw(floor->room[k].start_point.y + i, floor->room[k].start_point.x + j, "%c", floor->room[k].cell[i][j]);
+					attroff(COLOR_PAIR(5));
 				}
 			}
 		}
-		for(int i = 0; i < floor[g].number_corridor; i++) {
+		for(int i = 0; i < floor->number_corridor; i++) {
 			attron(COLOR_PAIR(1));
-			mvprintw(floor[g].corridor[i].y, floor[g].corridor[i].x, "%c", '#');
+			mvprintw(floor->corridor[i].y, floor->corridor[i].x, "%c", '#');
 			attroff(COLOR_PAIR(1));
 		}
-
-		attron(A_REVERSE);
-		mvprintw(position.y, position.x, "$");
-		attroff(A_REVERSE);
-		control_movement_and_inputs(floor[g], &position, &g);
-	}
 }
 void generate_room(room_info* a_room, int number) {
 	srand(time(NULL) + number * 23456);
@@ -897,7 +1050,7 @@ void generate_room(room_info* a_room, int number) {
 	int c = rand() % 4;  //random for location of first door
     int d;
 
-	switch (c) {
+	switch (c) {  //door
         case 0:    //door 1 is up
             d = rand() % (b - 2);
             a_room->cell[0][d+1] = door_symbol(a_room, 0, 1);
@@ -943,6 +1096,93 @@ void generate_room(room_info* a_room, int number) {
             a_room->door[1].x = b-1;
             break;
     }
+
+	c = rand() % 3; //0 or 1 or 2           //PILLAR
+	for(int i = 0; i < c ; i++) {
+		a = rand() % (a_room->wide - 2) + 1;    //x
+		b = rand() % (a_room->height - 2) + 1;  //y
+		if(check_value(a_room, b, a, '.') == false) { i-= 1; continue; }
+		a_room->cell[b][a] = 'O';
+	}
+	
+	c = rand() % 3; //0 or 1 or 2           //FOOD
+	for(int i = 0; i < c ; i++) {
+		a = rand() % (a_room->wide - 2) + 1;    //x
+		b = rand() % (a_room->height - 2) + 1;  //y
+		if(check_value(a_room, b, a, '.') == false) { i-= 1; continue; }
+		a_room->cell[b][a] = 'F';
+	}
+	
+	switch (a_room->room_type) {
+		case REGULAR_ROOM:
+			c = rand() % 2; //0 or 1        //GOLD
+			for(int i = 0; i < c ; i++) {
+				a = rand() % (a_room->wide - 2) + 1;    //x
+				b = rand() % (a_room->height - 2) + 1;  //y
+				if(check_value(a_room, b, a, '.') == false) { i-= 1; continue; }
+				a_room->gold[i].available = TRUE;
+				a_room->gold[i].x = a;
+				a_room->gold[i].y = b;
+				a_room->gold[i].value = rand() % 10 + 1;
+				a_room->cell[b][a] = 'G';
+			}
+			c = rand() % 2; //0 or 1         //TRAPE
+			for(int i = 0; i < c ; i++) {
+				a = rand() % (a_room->wide - 2) + 1;    //x
+				b = rand() % (a_room->height - 2) + 1;  //y
+				if(check_value(a_room, b, a, '.') == false) { i-= 1; continue; }
+				a_room->trape[i].available = TRUE;
+				a_room->trape[i].x = a;
+				a_room->trape[i].y = b;
+				a_room->cell[b][a] = 'T';
+			}
+			c = rand() % 2; //0 or 1         //ENCHANT
+			for(int i = 0; i < c ; i++) {
+				a = rand() % (a_room->wide - 2) + 1;    //x
+				b = rand() % (a_room->height - 2) + 1;  //y
+				if(check_value(a_room, b, a, '.') == false) { i-= 1; continue; }
+				a_room->enchant[i].available = TRUE;
+				a_room->enchant[i].x = a;
+				a_room->enchant[i].y = b;
+				if(a % 4 == 0) { a_room->cell[b][a] = 'H'; continue;  }
+				if(a % 4 == 1) { a_room->cell[b][a] = 'S'; continue;  }
+				if(a % 4 == 2) { a_room->cell[b][a] = 'D'; continue;  }
+				if(a % 4 == 3) { a_room->cell[b][a] = 'M'; continue;  }					
+			}
+			break;
+		case ENCHANT_ROOM:
+			c = rand() % 6 + 4;            //ENCHANT
+			for(int i = 0; i < c ; i++) {
+				a = rand() % (a_room->wide - 2) + 1;    //x
+				b = rand() % (a_room->height - 2) + 1;  //y
+				if(check_value(a_room, b, a, '.') == false) { i-= 1; continue; }
+				a_room->enchant[i].available = TRUE;
+				a_room->enchant[i].x = a;
+				a_room->enchant[i].y = b;
+				if(a % 4 == 0) { a_room->cell[b][a] = 'H'; continue;  }
+				if(a % 4 == 1) { a_room->cell[b][a] = 'S'; continue;  }
+				if(a % 4 == 2) { a_room->cell[b][a] = 'D'; continue;  }
+				if(a % 4 == 3) { a_room->cell[b][a] = 'M'; continue;  }					
+			}
+			break;
+		case TREASURE_ROOM:
+			c = rand() % 10 + 5;            //TRAPE
+			for(int i = 0; i < c ; i++) {
+				a = rand() % (a_room->wide - 2) + 1;    //x
+				b = rand() % (a_room->height - 2) + 1;  //y
+				if(check_value(a_room, b, a, '.') == false) { i-= 1; continue; }
+				a_room->trape[i].available = TRUE;
+				a_room->trape[i].x = a;
+				a_room->trape[i].y = b;
+				a_room->cell[b][a] = 'T';
+			}
+			break;
+	}
+
+}
+bool check_value(room_info* room, int y, int x, char value) {
+	if(room->cell[y][x] == value) return true;
+	else return false;
 }
 char door_symbol(room_info* room, int n, int side) {
 	if(room->door_type[n] == REGULAR_DOOR)  return '+';
@@ -966,26 +1206,26 @@ void generate_a_floor(floor_info* a_floor, int number) {
 				break;
 			case 1:
 				if(a_floor->room[i-1].door_type[0] == SECRET_DOOR) 
-					a_floor->room[i-1].room_type = ENCHANT_ROOM;
+					a_floor->room[i].room_type = ENCHANT_ROOM;
 				else
-					a_floor->room[i-1].room_type = REGULAR_ROOM;
+					a_floor->room[i].room_type = REGULAR_ROOM;
 				break;
 			case 2:
 			case 3:
 			case 4:
 				if(a_floor->room[i-1].door_type[1] == SECRET_DOOR) 
-					a_floor->room[i-1].room_type = ENCHANT_ROOM;
+					a_floor->room[i].room_type = ENCHANT_ROOM;
 				else
-					a_floor->room[i-1].room_type = REGULAR_ROOM;
+					a_floor->room[i].room_type = REGULAR_ROOM;
 				break;
 			case 5:
 				if(number == 3)     //last floor
 					a_floor->room[i].room_type = TREASURE_ROOM;
 				else
 					if(a_floor->room[i-1].door_type[1] == SECRET_DOOR) 
-						a_floor->room[i-1].room_type = ENCHANT_ROOM;
+						a_floor->room[i].room_type = ENCHANT_ROOM;
 					else
-						a_floor->room[i-1].room_type = REGULAR_ROOM;
+						a_floor->room[i].room_type = REGULAR_ROOM;
 				break;
 		}
 
@@ -994,6 +1234,7 @@ void generate_a_floor(floor_info* a_floor, int number) {
 				a_floor->room[i].door_type[0] = REGULAR_DOOR;
 			else
 				a_floor->room[i].door_type[0] = PASSWORD_DOOR;
+				a_floor->room[i].lock_door = true; /////////////
 		}
 		else if(a <= 25) {
 			a_floor->room[i].door_type[0] = REGULAR_DOOR; 
@@ -1001,18 +1242,22 @@ void generate_a_floor(floor_info* a_floor, int number) {
 		}
 		else if(a > 25 && a <= 50) {
 			a_floor->room[i].door_type[0] = REGULAR_DOOR; 
-			a_floor->room[i].door_type[1] = PASSWORD_DOOR; 
+			a_floor->room[i].door_type[1] = PASSWORD_DOOR;
+			a_floor->room[i].lock_door = true;  /////////////
 		}
 		else if(a > 50 && a < 75) {
 			a_floor->room[i].door_type[0] = PASSWORD_DOOR; 
+			a_floor->room[i].lock_door = true;  /////////////
 			a_floor->room[i].door_type[1] = SECRET_DOOR; 
 		}
 		else if(a > 75 && a < 100) {
 			a_floor->room[i].door_type[0] = REGULAR_DOOR; 
 			a_floor->room[i].door_type[1] = SECRET_DOOR; 
 		}
+		
 		generate_room(&a_floor->room[i], i);
 	}
+	
 	int a;
 	int b;
 
@@ -1175,45 +1420,119 @@ int handle_corridor(floor_info* floor, int first, int second, int index) {
 			index += 1;
 		}
 	}
+	for(int i = 0; i < 5; i++) {    //repeat 5 last indexes
+		floor->corridor[index] = floor->corridor[index-1];
+		index += 1;
+	}
 	return index;
 }
-void control_movement_and_inputs(floor_info floor, location* place, int* num_floor) {
+void control_movement_and_inputs(floor_info* floor, location* place, int* num_floor) {
 	int ch = getch();
+	int current;
 	switch (ch)
 	{
 	case KEY_UP:
 		place->y -= 1;
+		if(check_location(floor, place) == false) place->y += 1;
+		//else search for special element
 		break;
 	case KEY_DOWN:
 		place->y += 1;
+		if(check_location(floor, place) == false) place->y -= 1;
 		break;
 	case KEY_RIGHT:
 		place->x += 1;
+		if(check_location(floor, place) == false) place->x -= 1;
 		break;
 	case KEY_LEFT:
 		place->x -= 1;
+		if(check_location(floor, place) == false) place->x += 1;
 		break;
 	case KEY_NPAGE:
 		place->x += 1;
 		place->y += 1;
+		if(check_location(floor, place) == false) { place->x -= 1; place->y -= 1; }
 		break;
 	case KEY_HOME:
 		place->x -= 1;
 		place->y -= 1;
+		if(check_location(floor, place) == false) { place->x += 1; place->y += 1; }
 		break;
 	case KEY_PPAGE:
 		place->x += 1;
 		place->y -= 1;
+		if(check_location(floor, place) == false) { place->x -= 1; place->y += 1; }
 		break;
 	case KEY_END:
 		place->x -= 1;
 		place->y += 1;
+		if(check_location(floor, place) == false) { place->x += 1; place->y -= 1; }
 		break;
-	case '+':
-		*num_floor += 1;
+	case '>':     //Next floor
+		current = current_room(floor, place);
+		if(check_value(&floor->room[current], place->y - floor->room[current].start_point.y, place->x - floor->room[current].start_point.x, '<'))
+			*num_floor += 1;
 		break;
-	case '-':
-		*num_floor -= 1;
+	case '<':     //Previous floor
+		current = current_room(floor, place);
+		if(check_value(&floor->room[current], place->y - floor->room[current].start_point.y, place->x - floor->room[current].start_point.x, '<'))
+			*num_floor -= 1;
 		break;
+	case 'M':   //represent all the map
+		print_all_map(floor);
+		attron(A_REVERSE | COLOR_PAIR(3));
+		mvprintw(place->y, place->x, "$");
+		attroff(A_REVERSE | COLOR_PAIR(3));
+		ch = getch();
+		if(ch == 'M') break;
+		else control_movement_and_inputs(floor, place, num_floor);
 	}
+}
+bool check_location(floor_info* floor, location* place) {
+	for(int i = 0; i < 6; i++) {
+		if( place->x > floor->room[i].start_point.x  &&  place->x < floor->room[i].start_point.x + floor->room[i].wide - 1 &&
+			place->y > floor->room[i].start_point.y  &&  place->y < floor->room[i].start_point.y + floor->room[i].height - 1 ) {
+				if(floor->room[i].cell[place->y - floor->room[i].start_point.y][place->x - floor->room[i].start_point.x] == 'O') 
+					return false;
+				else 
+					return true;
+		}
+	}
+	//if didn't return
+	for(int i = 0; i < floor->number_corridor; i++) {
+		if(place->x == floor->corridor[i].x && place->y == floor->corridor[i].y) 
+			return true;
+	}
+
+	for(int i = 0; i < 6; i++) {  //نوع در مهم است
+		for(int j = 0; j < 2; j++) {
+			if( place->x == floor->room[i].door[j].x + floor->room[i].start_point.x && 
+				place->y == floor->room[i].door[j].y + floor->room[i].start_point.y ) {
+				switch(floor->room[i].door_type[j]) {
+					case PASSWORD_DOOR:
+						//open_password_door(&floor->room[i], j);
+						return floor->room[i].lock_door;
+					case REGULAR_DOOR:
+						return true;
+					case SECRET_DOOR:
+						floor->room[i].cell[floor->room[i].door[j].y][floor->room[i].door[j].x] = '?';
+						return true;				
+				}
+			}
+			if(i == 0 || i == 5) j++;
+		}
+	}
+
+	return false;
+}
+int current_room(floor_info* floor, location* place) {
+	for(int i = 0; i < 6; i++) {
+		if( place->x > floor->room[i].start_point.x  &&  place->x < floor->room[i].start_point.x + floor->room[i].wide - 1 &&
+			place->y > floor->room[i].start_point.y  &&  place->y < floor->room[i].start_point.y + floor->room[i].height - 1 ) {
+				return i;				
+		}
+	}
+}
+void open_password_door(room_info* room, int door_number) {
+	
 }
