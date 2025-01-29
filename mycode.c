@@ -67,8 +67,12 @@ typedef struct {
 } floor_info;
 
 typedef struct {
-	char name[20];
-	int number;
+	int mace_amount;
+	int dagger_amount;
+	int wand_amount;
+	int arrow_amount;
+	int sword_amount;
+	char current;
 } weapon_info;
 
 typedef struct {
@@ -123,6 +127,7 @@ void pickup_a_gold(room_info* room, location* place, int* save_gold);
 void check_for_trap(room_info* room, location* place);
 void list_of_weapon(weapon_info* weapon);
 void list_of_enchant(enchant_info* enchant);
+void change_weapon(weapon_info* weapon);
 void open_password_door(room_info* room, int door_number);
 char* input_without_initial_and_final_space(int max_size);
 
@@ -931,8 +936,8 @@ void new_game() {
 	int g = 0;  //num_floor
 	achievement_info achievement;
 	achievement.save_gold = 0;
-	achievement.weapon.number = 0;
-	achievement.enchant.number = 0;
+	achievement.weapon.mace_amount = 1;
+	achievement.weapon.current = 'm';
 
 	while (1) {
 		clear();
@@ -1093,11 +1098,6 @@ void print_one_element(int y, int x, char value) {
 			mvprintw(y, x, "\U00002299");
 			attroff(COLOR_PAIR(6));
 			break;
-		case 'm':   //Mace
-			attron(COLOR_PAIR(6));
-			mvprintw(y, x, "\U00002692");
-			attroff(COLOR_PAIR(6));
-			break;
 		case 'd':    //Dagger ***
 			attron(COLOR_PAIR(6));
 			mvprintw(y, x, "\U0001F5E1");
@@ -1152,8 +1152,8 @@ void print_one_element(int y, int x, char value) {
 }
 void generate_room(room_info* a_room, int number) {
 	srand(time(NULL) + number * 23456);
-    int a = (rand() % 6) + 6;
-    int b = (rand() % 6) + 6;
+    int a = (rand() % 4) + 8;
+    int b = (rand() % 4) + 8;
 
     for (int i = 0; i < a; i++) {
         for (int j = 0; j < b; j++) {
@@ -1236,11 +1236,10 @@ void generate_room(room_info* a_room, int number) {
 		a = rand() % (a_room->wide - 2) + 1;    //x
 		b = rand() % (a_room->height - 2) + 1;  //y
 		if(check_value(a_room, b, a, '.') == false) { i-= 1; continue; }
-		if(a % 5 == 0) { a_room->cell[b][a] = 'm'; continue;  } //Mace
-		if(a % 5 == 1) { a_room->cell[b][a] = 'd'; continue;  } //Dagger
-		if(a % 5 == 2) { a_room->cell[b][a] = 'w'; continue;  } //Magic Wand
-		if(a % 5 == 3) { a_room->cell[b][a] = 'a'; continue;  } //Normal Arrow
-		if(a % 5 == 4) { a_room->cell[b][a] = 's'; continue;  } //Sword
+		if(a % 4 == 0) { a_room->cell[b][a] = 'd'; continue;  } //Dagger
+		if(a % 4 == 1) { a_room->cell[b][a] = 'w'; continue;  } //Magic Wand
+		if(a % 4 == 2) { a_room->cell[b][a] = 'a'; continue;  } //Normal Arrow
+		if(a % 4 == 3) { a_room->cell[b][a] = 's'; continue;  } //Sword
 	}
 
 	
@@ -1811,38 +1810,27 @@ void pickup_a_thing(room_info* room, location* place, achievement_info* achievem
 	attron(COLOR_PAIR(1));
 	switch (room->cell[place->y - room->start_point.y][place->x - room->start_point.x])
 	{
-	case 'm':      //Mace
-			mvprintw(1, 5, "Weapon was gotten :  Mace \U00002692");
-			achievement->weapon.name[achievement->weapon.number] = 'm';
-			achievement->weapon.number += 1;
-			room->cell[place->y - room->start_point.y][place->x - room->start_point.x] = '.';
-			getch();
-		break;
 	case 'd':      //Dagger
 			mvprintw(1, 5, "Weapon was gotten :  Dagger \U0001F5E1");
-			achievement->weapon.name[achievement->weapon.number] = 'd';
-			achievement->weapon.number += 1;
+			achievement->weapon.dagger_amount += 10;
 			room->cell[place->y - room->start_point.y][place->x - room->start_point.x] = '.';
 			getch();
 		break;
 	case 'w':      //Magic Wand
 			mvprintw(1, 5, "Weapon was gotten :  Magic Wand \U00002020");
-			achievement->weapon.name[achievement->weapon.number] = 'w';
-			achievement->weapon.number += 1;
+			achievement->weapon.wand_amount += 8;
 			room->cell[place->y - room->start_point.y][place->x - room->start_point.x] = '.';
 			getch();
 		break;
 	case 'a':      //Normal Arrow
 			mvprintw(1, 5, "Weapon was gotten :  Normal Arrow \U000027B3");
-			achievement->weapon.name[achievement->weapon.number] = 'a';
-			achievement->weapon.number += 1;
+			achievement->weapon.arrow_amount += 20;
 			room->cell[place->y - room->start_point.y][place->x - room->start_point.x] = '.';
 			getch();
 		break;
 	case 's':      //Sword
 			mvprintw(1, 5, "Weapon was gotten :  Sword \U00002694");
-			achievement->weapon.name[achievement->weapon.number] = 's';
-			achievement->weapon.number += 1;
+			achievement->weapon.sword_amount = 1;
 			room->cell[place->y - room->start_point.y][place->x - room->start_point.x] = '.';
 			getch();
 		break;
@@ -1906,36 +1894,40 @@ void check_for_trap(room_info* room, location* place) {
 void list_of_weapon(weapon_info* weapon) {
 	clear();
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
+	init_pair(2, COLOR_RED, COLOR_BLACK);
+	init_color(11, 1000, 843, 0);   // رنگ طلایی 
+	init_pair(3, 11, COLOR_BLACK);
+	attron(COLOR_PAIR(3));
+	mvprintw(1, 50, "Press p to put your weapon in your bag and Change your current_weapon\n");
+	attroff(COLOR_PAIR(3));
 	attron(COLOR_PAIR(1));
-	if(weapon->number == 0) 
-		mvprintw(1, 10, "No weapon you have!\n");
-	char* name;
-	for(int i = 0; i < weapon->number; i++) {
-		switch (weapon->name[i]) {
-			case 'm':
-				name = "Mace \u2692";
-				break;
-			case 'd':
-				name = "Dagger \u2020";
-				break;
-			case 'w':
-				name = "Magic Wand \u269A";
-				break;
-			case 'a':
-				name = "Normal Arrow \u27B3";
-				break;
-			case 's':
-				name = "Sword \u2694";
-				break;
-		}
-		mvprintw(1, 10, "weapon list:\n");
-		if(i > 30) 
-			mvprintw(3+i-30, 70, "%d)     %s\n", i+1, name);
-		else 
-			mvprintw(3+i, 10, "%d)     %s\n", i+1, name);
-	}
+	mvprintw(1, 10, "weapon list:");
 	attroff(COLOR_PAIR(1));
-	getch();
+	attron(COLOR_PAIR(2));
+	mvprintw(5, 10, "Short_range weapons:");
+	mvprintw(7, 10,     "Name        Key     Power");
+	mvprintw(12, 10, "Thrown weapons:");
+	mvprintw(14, 10, "Name             Key      Number    Power   ");
+	attroff(COLOR_PAIR(2));
+
+	attron(COLOR_PAIR(1));
+	mvprintw(8, 10,     "Mace \u2692      'm'       5  ");
+	if(weapon->sword_amount > 0)
+		mvprintw(9, 10, "Sword \u2694     's'      10");
+	mvprintw(15, 10, "Dagger \u2020         'd'        %-3d      12 ", weapon->dagger_amount);
+	mvprintw(16, 10, "Magic Wand \u269A     'w'        %-3d      15  ", weapon->wand_amount);
+	mvprintw(17, 10, "Normal Arrow \u27B3   'a'        %-3d       5 ", weapon->arrow_amount);
+	attroff(COLOR_PAIR(1));
+	int ch = getch();
+	if(ch == 'p') {
+		change_weapon(weapon);
+	}
+	else if(ch == 'm' || ch == 's' || ch == 'd' || ch == 'w' || ch == 'a') {
+		attron(COLOR_PAIR(2));
+		mvprintw(2, 50, "First Put your weapon in your bag!\n");
+		attroff(COLOR_PAIR(2));
+		getch();
+	}
 }
 void list_of_enchant(enchant_info* enchant) {
 	clear();
@@ -1963,6 +1955,82 @@ void list_of_enchant(enchant_info* enchant) {
 			mvprintw(3+i, 10, "%d)     %s\n", i+1, name);
 	}
 	attroff(COLOR_PAIR(1));
+	getch();
+}
+void change_weapon(weapon_info* weapon) {
+	init_color(11, 1000, 843, 0);   // رنگ طلایی 
+	init_pair(1, COLOR_GREEN, COLOR_BLACK);
+	init_pair(2, COLOR_RED, COLOR_BLACK);
+	init_pair(3, 11, COLOR_BLACK);
+	attron(COLOR_PAIR(3));
+	mvprintw(2, 50, "Your weapon was placed in your bag!\n");
+	mvprintw(3, 50, "Now Please enter a Gun_Key to change your weapon!\n");
+	attroff(COLOR_PAIR(3));
+	int ch = getch();
+	switch (ch) {
+		case 'm':
+			attron(COLOR_PAIR(1));
+			mvprintw(4, 50, "Your New weapon is Mace \u2692!\n");
+			weapon->current = 'm';
+			attroff(COLOR_PAIR(1));
+			break;
+		case 's':
+			if(weapon->sword_amount == 0) {
+				attron(COLOR_PAIR(2));
+				mvprintw(4, 50, "You don't have enough number of this weapon!\n");
+				attroff(COLOR_PAIR(2));
+			}
+			else {
+				attron(COLOR_PAIR(1));
+				mvprintw(4, 50, "Your New weapon is Sword \u2694!\n");
+				weapon->current = 's';
+				attroff(COLOR_PAIR(1));
+			}
+			break;
+		case 'd':
+			if(weapon->dagger_amount == 0) {
+				attron(COLOR_PAIR(2));
+				mvprintw(4, 50, "You don't have enough number of this weapon!\n");
+				attroff(COLOR_PAIR(2));
+			}
+			else {
+				attron(COLOR_PAIR(1));
+				mvprintw(4, 50, "Your New weapon is Dagger \u2020!\n");
+				weapon->current = 'd';
+				attroff(COLOR_PAIR(1));
+			}
+			break;
+		case 'w':
+			if(weapon->wand_amount == 0) {
+				attron(COLOR_PAIR(2));
+				mvprintw(4, 50, "You don't have enough number of this weapon!\n");
+				attroff(COLOR_PAIR(2));
+			}
+			else {
+				attron(COLOR_PAIR(1));
+				mvprintw(4, 50, "Your New weapon is Magic Wand \u269A!\n");
+				weapon->current = 'w';
+				attroff(COLOR_PAIR(1));
+			}
+			break;
+		case 'a':
+			if(weapon->arrow_amount == 0) {
+				attron(COLOR_PAIR(2));
+				mvprintw(4, 50, "You don't have enough number of this weapon!\n");
+				attroff(COLOR_PAIR(2));
+			}
+			else {
+				attron(COLOR_PAIR(1));
+				mvprintw(4, 50, "Your New weapon is Normal Arrow \u27B3!\n");
+				weapon->current = 'a';
+				attroff(COLOR_PAIR(1));
+			}
+			break;
+		default: 
+				attron(COLOR_PAIR(2));
+				mvprintw(4, 50, "Input weapon isn't in the list!\n");
+				attroff(COLOR_PAIR(2));
+	}
 	getch();
 }
 void open_password_door(room_info* room, int door_number) {
