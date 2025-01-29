@@ -44,18 +44,15 @@ typedef struct {
     int x;
 	int y;
 	int value; 
-	bool available;
 } element;
 
 typedef struct {
 	int room_type;      //REGULAR_ROOM   ENCHANT_ROOM    TREASURE_ROOM
-	int door_type[3];   //REGULAR_DOOR   PASSWORD_DOOR   SECRET_DOOR 
+	int door_type[2];   //REGULAR_DOOR   PASSWORD_DOOR   SECRET_DOOR 
     char cell[12][12]; 
     int height;
     int wide;
 	bool lock_door;
-	element trap[15];
-	element enchant[10];
 	element gold[5];
 	element black_gold; 
 	location door[2]; //room first and last only one door
@@ -1153,10 +1150,6 @@ void generate_room(room_info* a_room, int number) {
 	a_room->height = a;
 	a_room->wide = b;
 
-	for(int i = 0; i < 5; i++) {  //set all to 0
-		a_room->gold[i].available = false; 
-	}
-
 	int c = rand() % 4;  //random for location of first door
     int d;
 
@@ -1243,7 +1236,6 @@ void generate_room(room_info* a_room, int number) {
 				a = rand() % (a_room->wide - 2) + 1;    //x
 				b = rand() % (a_room->height - 2) + 1;  //y
 				if(check_value(a_room, b, a, '.') == false) { i-= 1; continue; }
-				a_room->gold[i].available = TRUE;
 				a_room->gold[i].x = a;
 				a_room->gold[i].y = b;
 				a_room->gold[i].value = rand() % 10 + 1;
@@ -1254,9 +1246,6 @@ void generate_room(room_info* a_room, int number) {
 				a = rand() % (a_room->wide - 2) + 1;    //x
 				b = rand() % (a_room->height - 2) + 1;  //y
 				if(check_value(a_room, b, a, '.') == false) { i-= 1; continue; }
-				a_room->trap[i].available = TRUE;
-				a_room->trap[i].x = a;
-				a_room->trap[i].y = b;
 				a_room->cell[b][a] = 'T';
 			}
 			c = rand() % 2; //0 or 1         //ENCHANT
@@ -1264,9 +1253,6 @@ void generate_room(room_info* a_room, int number) {
 				a = rand() % (a_room->wide - 2) + 1;    //x
 				b = rand() % (a_room->height - 2) + 1;  //y
 				if(check_value(a_room, b, a, '.') == false) { i-= 1; continue; }
-				a_room->enchant[i].available = TRUE;
-				a_room->enchant[i].x = a;
-				a_room->enchant[i].y = b;
 				if(a % 4 == 0) { a_room->cell[b][a] = 'H'; continue;  }
 				if(a % 4 == 1) { a_room->cell[b][a] = 'S'; continue;  }
 				if(a % 4 == 2) { a_room->cell[b][a] = 'D'; continue;  }
@@ -1279,9 +1265,6 @@ void generate_room(room_info* a_room, int number) {
 				a = rand() % (a_room->wide - 2) + 1;    //x
 				b = rand() % (a_room->height - 2) + 1;  //y
 				if(check_value(a_room, b, a, '.') == false) { i-= 1; continue; }
-				a_room->enchant[i].available = TRUE;
-				a_room->enchant[i].x = a;
-				a_room->enchant[i].y = b;
 				if(a % 4 == 0) { a_room->cell[b][a] = 'H'; continue;  }
 				if(a % 4 == 1) { a_room->cell[b][a] = 'S'; continue;  }
 				if(a % 4 == 2) { a_room->cell[b][a] = 'D'; continue;  }
@@ -1294,9 +1277,6 @@ void generate_room(room_info* a_room, int number) {
 				a = rand() % (a_room->wide - 2) + 1;    //x
 				b = rand() % (a_room->height - 2) + 1;  //y
 				if(check_value(a_room, b, a, '.') == false) { i-= 1; continue; }
-				a_room->trap[i].available = TRUE;
-				a_room->trap[i].x = a;
-				a_room->trap[i].y = b;
 				a_room->cell[b][a] = 'T';
 			}
 			break;
@@ -1417,7 +1397,6 @@ void generate_a_floor(floor_info* a_floor, int number) {
 		a = rand() % (a_floor->room[c].wide - 2) + 1;    //x
 		b = rand() % (a_floor->room[c].height - 2) + 1;  //y
 		if(check_value(&a_floor->room[c], b, a, '.') == false) continue;
-		a_floor->room[c].black_gold.available = TRUE;
 		a_floor->room[c].black_gold.x = a;
 		a_floor->room[c].black_gold.y = b;
 		a_floor->room[c].black_gold.value = rand() % 20 + 50;  //This is between 50 to 70
