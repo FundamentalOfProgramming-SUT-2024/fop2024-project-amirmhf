@@ -15,7 +15,6 @@
 #define SIZE_EMAIL 75
 #define REGULAR_ROOM 0
 #define ENCHANT_ROOM 1
-#define TREASURE_ROOM 2
 #define REGULAR_DOOR 0
 #define PASSWORD_DOOR 1
 #define SECRET_DOOR 2
@@ -49,7 +48,7 @@ typedef struct {
 typedef struct {
 	int room_type;      //REGULAR_ROOM   ENCHANT_ROOM    TREASURE_ROOM
 	int door_type[2];   //REGULAR_DOOR   PASSWORD_DOOR   SECRET_DOOR 
-    char cell[12][12]; 
+    char cell[16][16]; 
     int height;
     int wide;
 	bool lock_door;
@@ -111,9 +110,13 @@ void print_map_conditionally(floor_info* floor, location* place);
 void print_all_map(floor_info* floor);
 void print_one_element(int y, int x, char value);
 void generate_a_floor(floor_info* a_floor, int number);
+void generate_treasure_room(room_info* room);
+void print_treasure_room(room_info* room);
 int handle_corridor(floor_info* floor, int first, int second, int index);
 bool check_location(floor_info* floor, location* place);
+bool check_location_in_treasure_room(room_info* room, location* place);
 void control_movement_and_inputs(floor_info* floor, location* place, int* num_floor, achievement_info*);
+void control_in_treasure_room(room_info* room, location* place, achievement_info* achievement);
 int current_room(floor_info* floor, location* place);
 void pickup_a_thing(room_info* room, location* place, achievement_info*);
 void pickup_a_gold(room_info* room, location* place, int* save_gold);
@@ -919,6 +922,8 @@ void new_game() {
 		floor[i].open_corridor = -6;
 		sleep(1);
 	}
+	room_info treasure_room;
+	generate_treasure_room(&treasure_room);
 
 	location position;
 	start_location_random(&position, &floor[0].room[0]);
@@ -939,11 +944,22 @@ void new_game() {
 
 		int temp = g;
 		control_movement_and_inputs(floor+g, &position, &g, &achievement);
-		if(g != temp) {   //if floor was changed
+		if(g == 10) { start_location_random(&position, &treasure_room);  break;} //It means exit of the room and go to treasure_room
+		if(g != temp) {       //if floor was changed
 			start_location_random(&position, &floor[g].room[0]);
 		}
+		refresh();
 	}
 
+	while (1) {
+		clear();
+		print_treasure_room(&treasure_room);
+		attron(A_REVERSE | COLOR_PAIR(color));
+		mvprintw(position.y, position.x, "$");
+		attroff(A_REVERSE | COLOR_PAIR(color));
+		control_in_treasure_room(&treasure_room, &position, &achievement);
+	}
+	
 }
 void start_location_random(location* start, room_info* room) {
 	while(1) {
@@ -996,9 +1012,6 @@ void print_map_conditionally(floor_info* floor, location* place) {
 					case ENCHANT_ROOM:
 						attron(COLOR_PAIR(2));  //red
 						break;
-					case TREASURE_ROOM:
-						attron(COLOR_PAIR(4)); //yellow with white background
-						break;
 				}
 				//mvprintw(floor->room[k].start_point.y + i, floor->room[k].start_point.x + j, "%c", floor->room[k].cell[i][j]);
 				print_one_element(floor->room[k].start_point.y + i, floor->room[k].start_point.x + j, floor->room[k].cell[i][j]);
@@ -1027,9 +1040,6 @@ void print_all_map(floor_info* floor) {
 							break;
 						case ENCHANT_ROOM:
 							attron(COLOR_PAIR(2));  //red
-							break;
-						case TREASURE_ROOM:
-							attron(COLOR_PAIR(4)); //yellow with white background
 							break;
 					}
 					//mvprintw(floor->room[k].start_point.y + i, floor->room[k].start_point.x + j, "%c", floor->room[k].cell[i][j]);
@@ -1065,13 +1075,18 @@ void print_one_element(int y, int x, char value) {
 			break;
 		case 'G':  //GOLD
 			attron(COLOR_PAIR(3));
-			mvprintw(y, x, "\U000026c0");
+			mvprintw(y, x, "\U000026c0"); 
 			attroff(COLOR_PAIR(3));
 			break;
 		case 'B':   //BLACK_GOLD
 			attron(COLOR_PAIR(4));
 			mvprintw(y, x, "\U000026c2");
 			attroff(COLOR_PAIR(4));
+			break;
+		case 'X':  //Sign for TREASURE_ROOM
+			attron(COLOR_PAIR(3));
+			mvprintw(y, x, "\U00002605"); 
+			attroff(COLOR_PAIR(3));
 			break;
 		case 'F':    //FOOD
 			attron(COLOR_PAIR(6));
@@ -1253,10 +1268,9 @@ void generate_room(room_info* a_room, int number) {
 				a = rand() % (a_room->wide - 2) + 1;    //x
 				b = rand() % (a_room->height - 2) + 1;  //y
 				if(check_value(a_room, b, a, '.') == false) { i-= 1; continue; }
-				if(a % 4 == 0) { a_room->cell[b][a] = 'H'; continue;  }
-				if(a % 4 == 1) { a_room->cell[b][a] = 'S'; continue;  }
-				if(a % 4 == 2) { a_room->cell[b][a] = 'D'; continue;  }
-				if(a % 4 == 3) { a_room->cell[b][a] = 'M'; continue;  }					
+				if(a % 3 == 0) { a_room->cell[b][a] = 'H'; continue;  }
+				if(a % 3 == 1) { a_room->cell[b][a] = 'S'; continue;  }
+				if(a % 3 == 2) { a_room->cell[b][a] = 'D'; continue;  }
 			}
 			break;
 		case ENCHANT_ROOM:
@@ -1265,19 +1279,9 @@ void generate_room(room_info* a_room, int number) {
 				a = rand() % (a_room->wide - 2) + 1;    //x
 				b = rand() % (a_room->height - 2) + 1;  //y
 				if(check_value(a_room, b, a, '.') == false) { i-= 1; continue; }
-				if(a % 4 == 0) { a_room->cell[b][a] = 'H'; continue;  }
-				if(a % 4 == 1) { a_room->cell[b][a] = 'S'; continue;  }
-				if(a % 4 == 2) { a_room->cell[b][a] = 'D'; continue;  }
-				if(a % 4 == 3) { a_room->cell[b][a] = 'M'; continue;  }					
-			}
-			break;
-		case TREASURE_ROOM:
-			c = rand() % 10 + 5;            //trap
-			for(int i = 0; i < c ; i++) {
-				a = rand() % (a_room->wide - 2) + 1;    //x
-				b = rand() % (a_room->height - 2) + 1;  //y
-				if(check_value(a_room, b, a, '.') == false) { i-= 1; continue; }
-				a_room->cell[b][a] = 'T';
+				if(a % 3 == 0) { a_room->cell[b][a] = 'H'; continue;  }
+				if(a % 3 == 1) { a_room->cell[b][a] = 'S'; continue;  }
+				if(a % 3 == 2) { a_room->cell[b][a] = 'D'; continue;  }
 			}
 			break;
 	}
@@ -1319,19 +1323,11 @@ void generate_a_floor(floor_info* a_floor, int number) {
 			case 2:
 			case 3:
 			case 4:
+			case 5:
 				if(a_floor->room[i-1].door_type[1] == SECRET_DOOR) 
 					a_floor->room[i].room_type = ENCHANT_ROOM;
 				else
 					a_floor->room[i].room_type = REGULAR_ROOM;
-				break;
-			case 5:
-				if(number == 3)     //last floor
-					a_floor->room[i].room_type = TREASURE_ROOM;
-				else
-					if(a_floor->room[i-1].door_type[1] == SECRET_DOOR) 
-						a_floor->room[i].room_type = ENCHANT_ROOM;
-					else
-						a_floor->room[i].room_type = REGULAR_ROOM;
 				break;
 		}
 
@@ -1403,7 +1399,68 @@ void generate_a_floor(floor_info* a_floor, int number) {
 		a_floor->room[c].cell[b][a] = 'B';
 		break;
 	}
+
+	if(number == 3) { 
+		c = rand() % 3 + 3; //3 to 5        // The room with sign for TREASURE_ROOM
+		while(1) {
+			a = rand() % (a_floor->room[c].wide - 2) + 1;    //x
+			b = rand() % (a_floor->room[c].height - 2) + 1;  //y
+			if(check_value(&a_floor->room[c], b, a, '.') == false) continue;
+			a_floor->room[c].cell[b][a] = 'X';         //sign for TREASURE_ROOM
+			break;
+	}
+
+
+	}
 	refresh();
+}
+void generate_treasure_room(room_info* room) {
+	srand(time(NULL));
+    int a = (rand() % 8) + 8; 
+    int b = (rand() % 8) + 8;
+	int c;
+
+    for (int i = 0; i < a; i++) {
+        for (int j = 0; j < b; j++) {
+            if (i == 0 || i == a - 1) room->cell[i][j] = '_';
+            else if (j == 0 || j == b - 1) room->cell[i][j] = '|';
+            else room->cell[i][j] = '.';
+        }
+    }
+	room->height = a;
+	room->wide = b;
+
+	room->start_point.x = 60;
+	room->start_point.y = 15;
+
+	c = rand() % 10 + 8; //8 to 17           //TRAP
+	for(int i = 0; i < c ; i++) {
+		a = rand() % (room->wide - 2) + 1;    //x
+		b = rand() % (room->height - 2) + 1;  //y
+		if(check_value(room, b, a, '.') == false) { i-= 1; continue; }
+		room->cell[b][a] = 'T';
+	}
+
+	c = rand() % 3; //0 or 1 or 2           //PILLAR
+	for(int i = 0; i < c ; i++) {
+		a = rand() % (room->wide - 2) + 1;    //x
+		b = rand() % (room->height - 2) + 1;  //y
+		if(check_value(room, b, a, '.') == false) { i-= 1; continue; }
+		room->cell[b][a] = 'O';
+	}
+
+}
+void print_treasure_room(room_info* room) {
+	init_pair(1, COLOR_GREEN, COLOR_BLACK);
+	attron(COLOR_PAIR(1)); //Green
+	mvprintw(10, 50, "This is TREASURE_ROOM and you should defeat all the enemies!\n");
+	for (int i = 0; i < room->height; i++) {
+		for(int j = 0; j < room->wide; j++) {  //This will be printed from   X: 60  Y: 15
+			//mvprintw(room->start_point.y + i, room->start_point.x + j, "%c", room->cell[i][j]);
+			print_one_element(room->start_point.y + i, room->start_point.x + j, room->cell[i][j]);
+		}
+	}
+	attroff(COLOR_PAIR(1));
 }
 int handle_corridor(floor_info* floor, int first, int second, int index) {
 	int a = 1;
@@ -1627,6 +1684,71 @@ void control_movement_and_inputs(floor_info* floor, location* place, int* num_fl
 		else control_movement_and_inputs(floor, place, num_floor, achievement);
 	}
 
+	if(current >= 0 && *num_floor == 3) {  //
+		int a = place->x - floor->room[current].start_point.x;
+		int b = place->y - floor->room[current].start_point.y;
+		if(floor->room[current].cell[b][a] == 'X') {
+			*num_floor = 10;  //It means exit of the room and go to treasure_room
+		}
+	}
+
+}
+void control_in_treasure_room(room_info* room, location* place, achievement_info* achievement) {
+	init_pair(1, COLOR_GREEN, COLOR_BLACK);
+	check_for_trap(room, place);
+	int ch = getch();
+	switch (ch)
+	{
+	case KEY_UP:
+		place->y -= 1;
+		if(check_location_in_treasure_room(room, place) == false) place->y += 1;
+		break;
+	case KEY_DOWN:
+		place->y += 1;
+		if(check_location_in_treasure_room(room, place) == false) place->y -= 1;
+		break;
+	case KEY_RIGHT:
+		place->x += 1;
+		if(check_location_in_treasure_room(room, place) == false) place->x -= 1;
+		break;
+	case KEY_LEFT:
+		place->x -= 1;
+		if(check_location_in_treasure_room(room, place) == false) place->x += 1;
+		break;
+	case KEY_NPAGE:
+		place->x += 1;
+		place->y += 1;
+		if(check_location_in_treasure_room(room, place) == false) { place->x -= 1; place->y -= 1; }
+		break;
+	case KEY_HOME:
+		place->x -= 1;
+		place->y -= 1;
+		if(check_location_in_treasure_room(room, place) == false) { place->x += 1; place->y += 1; }
+		break;
+	case KEY_PPAGE:
+		place->x += 1;
+		place->y -= 1;
+		if(check_location_in_treasure_room(room, place) == false) { place->x -= 1; place->y += 1; }
+		break;
+	case KEY_END:
+		place->x -= 1;
+		place->y += 1;
+		if(check_location_in_treasure_room(room, place) == false) { place->x += 1; place->y -= 1; }
+		break;
+	case 'i':     //list for weapons
+		list_of_weapon(&achievement->weapon);
+		break;
+	case 'e':     //list for enchants
+		list_of_enchant(&achievement->enchant);
+		break;
+	case 'G':     //represent Gold saved
+		clear();
+		attron(COLOR_PAIR(1));
+		mvprintw(1, 10, "The amount of your collected Gold ---> %d", achievement->save_gold);
+		attroff(COLOR_PAIR(1));
+		getch();
+		break;
+	}
 }
 bool check_location(floor_info* floor, location* place) {
 	for(int i = 0; i < 6; i++) {
@@ -1663,6 +1785,16 @@ bool check_location(floor_info* floor, location* place) {
 		}
 	}
 
+	return false;
+}
+bool check_location_in_treasure_room(room_info* room, location* place) {
+	if( place->x > room->start_point.x  &&  place->x < room->start_point.x + room->wide - 1 &&
+		place->y > room->start_point.y  &&  place->y < room->start_point.y + room->height - 1 ) {
+			if(room->cell[place->y - room->start_point.y][place->x - room->start_point.x] == 'O') 
+				return false;
+			else 
+				return true;
+	}
 	return false;
 }
 int current_room(floor_info* floor, location* place) {
