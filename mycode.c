@@ -80,6 +80,11 @@ typedef struct {
 	int number;
 } enchant_info;
 
+typedef struct {
+	weapon_info weapon;
+	enchant_info enchant;
+	int save_gold;
+}achievement_info;
 
 int is_login = 0; //0 means no login    1 means user_login    2 means Guest player
 user_info logged_in_user;
@@ -111,9 +116,9 @@ void print_one_element(int y, int x, char value);
 void generate_a_floor(floor_info* a_floor, int number);
 int handle_corridor(floor_info* floor, int first, int second, int index);
 bool check_location(floor_info* floor, location* place);
-void control_movement_and_inputs(floor_info* floor, location* place, int* num_floor, weapon_info*, enchant_info*, int*);
+void control_movement_and_inputs(floor_info* floor, location* place, int* num_floor, achievement_info*);
 int current_room(floor_info* floor, location* place);
-void pickup_a_thing(room_info* room, location* place, weapon_info* weapon, enchant_info*);
+void pickup_a_thing(room_info* room, location* place, achievement_info*);
 void pickup_a_gold(room_info* room, location* place, int* save_gold);
 void check_for_trap(room_info* room, location* place);
 void list_of_weapon(weapon_info* weapon);
@@ -922,11 +927,10 @@ void new_game() {
 	start_location_random(&position, &floor[0].room[0]);
 	
 	int g = 0;  //num_floor
-	int save_gold = 0;
-	weapon_info weapon;
-	weapon.number = 0;
-	enchant_info enchant;
-	enchant.number = 0;
+	achievement_info achievement;
+	achievement.save_gold = 0;
+	achievement.weapon.number = 0;
+	achievement.enchant.number = 0;
 
 	while (1) {
 		clear();
@@ -937,7 +941,7 @@ void new_game() {
 		attroff(A_REVERSE | COLOR_PAIR(color));
 
 		int temp = g;
-		control_movement_and_inputs(floor+g, &position, &g, &weapon, &enchant, &save_gold);
+		control_movement_and_inputs(floor+g, &position, &g, &achievement);
 		if(g != temp) {   //if floor was changed
 			start_location_random(&position, &floor[g].room[0]);
 		}
@@ -1560,12 +1564,12 @@ int handle_corridor(floor_info* floor, int first, int second, int index) {
 	}
 	return index;
 }
-void control_movement_and_inputs(floor_info* floor, location* place, int* num_floor, weapon_info* weapon, enchant_info* enchant, int* save_gold) {
+void control_movement_and_inputs(floor_info* floor, location* place, int* num_floor, achievement_info* achievement) {
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
 	int current;
 	current = current_room(floor, place);
 	if(current >= 0) {
-		pickup_a_gold(&floor->room[current], place, save_gold);
+		pickup_a_gold(&floor->room[current], place, &achievement->save_gold);//
 		check_for_trap(&floor->room[current], place);
 	}
 	int ch = getch();
@@ -1618,19 +1622,19 @@ void control_movement_and_inputs(floor_info* floor, location* place, int* num_fl
 		break;
 	case 'g':     //get_a_thing
 		if(current >= 0) {
-			pickup_a_thing(&floor->room[current], place, weapon, enchant);
+			pickup_a_thing(&floor->room[current], place, achievement);
 		}
 		break;
 	case 'i':     //list for weapons
-		list_of_weapon(weapon);
+		list_of_weapon(&achievement->weapon);
 		break;
 	case 'e':     //list for enchants
-		list_of_enchant(enchant);
+		list_of_enchant(&achievement->enchant);
 		break;
 	case 'G':     //represent Gold saved
 		clear();
 		attron(COLOR_PAIR(1));
-		mvprintw(1, 10, "The amount of your collected Gold ---> %d", *save_gold);
+		mvprintw(1, 10, "The amount of your collected Gold ---> %d", achievement->save_gold);
 		attroff(COLOR_PAIR(1));
 		getch();
 		break;
@@ -1641,7 +1645,7 @@ void control_movement_and_inputs(floor_info* floor, location* place, int* num_fl
 		attroff(A_REVERSE | COLOR_PAIR(3));
 		ch = getch();
 		if(ch == 'M') break;
-		else control_movement_and_inputs(floor, place, num_floor, weapon, enchant, save_gold);
+		else control_movement_and_inputs(floor, place, num_floor, achievement);
 	}
 
 }
@@ -1691,64 +1695,64 @@ int current_room(floor_info* floor, location* place) {
 	}
 	return -1;
 }
-void pickup_a_thing(room_info* room, location* place, weapon_info* weapon, enchant_info* enchant) {
+void pickup_a_thing(room_info* room, location* place, achievement_info* achievement) {
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
 	attron(COLOR_PAIR(1));
 	switch (room->cell[place->y - room->start_point.y][place->x - room->start_point.x])
 	{
 	case 'm':      //Mace
 			mvprintw(1, 5, "Weapon was gotten :  Mace \U00002692");
-			weapon->name[weapon->number] = 'm';
-			weapon->number += 1;
+			achievement->weapon.name[achievement->weapon.number] = 'm';
+			achievement->weapon.number += 1;
 			room->cell[place->y - room->start_point.y][place->x - room->start_point.x] = '.';
 			getch();
 		break;
 	case 'd':      //Dagger
 			mvprintw(1, 5, "Weapon was gotten :  Dagger \U0001F5E1");
-			weapon->name[weapon->number] = 'd';
-			weapon->number += 1;
+			achievement->weapon.name[achievement->weapon.number] = 'd';
+			achievement->weapon.number += 1;
 			room->cell[place->y - room->start_point.y][place->x - room->start_point.x] = '.';
 			getch();
 		break;
 	case 'w':      //Magic Wand
 			mvprintw(1, 5, "Weapon was gotten :  Magic Wand \U00002020");
-			weapon->name[weapon->number] = 'w';
-			weapon->number += 1;
+			achievement->weapon.name[achievement->weapon.number] = 'w';
+			achievement->weapon.number += 1;
 			room->cell[place->y - room->start_point.y][place->x - room->start_point.x] = '.';
 			getch();
 		break;
 	case 'a':      //Normal Arrow
 			mvprintw(1, 5, "Weapon was gotten :  Normal Arrow \U000027B3");
-			weapon->name[weapon->number] = 'a';
-			weapon->number += 1;
+			achievement->weapon.name[achievement->weapon.number] = 'a';
+			achievement->weapon.number += 1;
 			room->cell[place->y - room->start_point.y][place->x - room->start_point.x] = '.';
 			getch();
 		break;
 	case 's':      //Sword
 			mvprintw(1, 5, "Weapon was gotten :  Sword \U00002694");
-			weapon->name[weapon->number] = 's';
-			weapon->number += 1;
+			achievement->weapon.name[achievement->weapon.number] = 's';
+			achievement->weapon.number += 1;
 			room->cell[place->y - room->start_point.y][place->x - room->start_point.x] = '.';
 			getch();
 		break;
 	case 'S':      //Speed enchant
 			mvprintw(1, 5, "Weapon was gotten :  Speed enchant \U000026f7");
-			enchant->name[enchant->number] = 'S';
-			enchant->number += 1;
+			achievement->enchant.name[achievement->enchant.number] = 'S';
+			achievement->enchant.number += 1;
 			room->cell[place->y - room->start_point.y][place->x - room->start_point.x] = '.';
 			getch();
 		break;
 	case 'D':      //Damage enchant
 			mvprintw(1, 5, "enchant was gotten :  Damage enchant \U00002620");
-			enchant->name[enchant->number] = 'D';
-			enchant->number += 1;
+			achievement->enchant.name[achievement->enchant.number] = 'D';
+			achievement->enchant.number += 1;
 			room->cell[place->y - room->start_point.y][place->x - room->start_point.x] = '.';
 			getch();
 		break;
 	case 'H':      //Health enchant
 			mvprintw(1, 5, "enchant was gotten :  Health enchant \U00002695");
-			enchant->name[enchant->number] = 'H';
-			enchant->number += 1;
+			achievement->enchant.name[achievement->enchant.number] = 'H';
+			achievement->enchant.number += 1;
 			room->cell[place->y - room->start_point.y][place->x - room->start_point.x] = '.';
 			getch();
 		break;
@@ -1804,7 +1808,7 @@ void list_of_weapon(weapon_info* weapon) {
 				name = "Dagger \u2020";
 				break;
 			case 'w':
-				name = "Maic Wand \u269A";
+				name = "Magic Wand \u269A";
 				break;
 			case 'a':
 				name = "Normal Arrow \u27B3";
