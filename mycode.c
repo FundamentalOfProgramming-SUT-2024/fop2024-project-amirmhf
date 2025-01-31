@@ -48,7 +48,7 @@ typedef struct {
 typedef struct {
 	int room_type;      //REGULAR_ROOM   ENCHANT_ROOM    TREASURE_ROOM
 	int door_type[2];   //REGULAR_DOOR   PASSWORD_DOOR   SECRET_DOOR 
-    char cell[16][16]; 
+    char cell[20][20]; 
     int height;
     int wide;
 	bool lock_door;
@@ -61,7 +61,6 @@ typedef struct {
 typedef struct {
 	int health;
 	char name;
-	int floor;
 	int room;
 	location place;
 }enemy_info;
@@ -91,6 +90,7 @@ typedef struct {
 	int damage_amount;
 	char current; //a char for save
 	bool active;
+	int distance;
 } enchant_info;
 
 typedef struct {
@@ -103,8 +103,13 @@ typedef struct {
 	int movement;
 	int movement_unhungry;  
 	int food_amount;
-	enemy_info enemy[35];
 }achievement_info;
+
+typedef struct {
+	room_info room;
+	enemy_info enemy[20];
+	int number_enemy;
+}treasure_info;
 
 
 int is_login = 0; //0 means no login    1 means user_login    2 means Guest player
@@ -135,19 +140,23 @@ void print_map_conditionally(floor_info* floor, location* place);
 void print_all_map(floor_info* floor);
 void print_one_element(int y, int x, char value);
 void generate_a_floor(floor_info* a_floor, int number);
-void generate_treasure_room(room_info* room);
-void print_treasure_room(room_info* room);
+void generate_treasure_room(treasure_info* treasure);
+void print_treasure_room(treasure_info* treasure);
+bool go_to_treasure_room(floor_info* floor, location* place, int num_floor);
 int handle_corridor(floor_info* floor, int first, int second, int index);
 bool check_location(floor_info* floor, location* place);
-bool check_location_in_treasure_room(room_info* room, location* place);
+bool check_location_in_treasure_room(treasure_info* treasure, location* place);
 bool check_location_as_be_enemy(floor_info* floor, location* place, int j);
 int  check_location_as_be_enemy_with_index(floor_info* floor, location* place);
+int check_location_as_be_enemy_with_index_in_treasure_room(treasure_info* treasure, location* place);
 void control_list_and_inputs(floor_info* floor, location* place, int* num_floor, achievement_info*, int);
 void control_movement_for_player(floor_info* floor, location* place, achievement_info*, int);
-void control_in_treasure_room(room_info* room, location* place, achievement_info* achievement);
+void control_movement_for_player_in_treasure(treasure_info* treasure, location* place, achievement_info*, int);
+void control_list_treasure_room(treasure_info* treasure, location* place, achievement_info* achievement, int ch);
 int current_room(floor_info* floor, location* place);
 void pickup_a_thing(room_info* room, location* place, achievement_info*);
 void pickup_and_check_trap_and_health(floor_info* floor, location* place, achievement_info* achievement);
+void check_trap_and_distance_in_treasure_room(treasure_info* treasure, location* place, achievement_info* achievement);
 void pickup_a_gold_food(room_info* room, location* place, achievement_info*);
 void check_for_trap(room_info* room, location* place, achievement_info*);
 void list_of_weapon(weapon_info* weapon);
@@ -156,24 +165,44 @@ void change_weapon(weapon_info* weapon);
 void show_health_rate(achievement_info* achievement);
 void eat_a_meal(achievement_info* achievement);
 void cure_when_is_unhungry(achievement_info* achievement);
+void check_hunger_bar(achievement_info* achievement);
 void print_enemy_conditionally(floor_info* floor);
-void move_alive_enemies(floor_info* floor, location* place);
+void move_alive_enemies(floor_info* floor, location* place, achievement_info*);
 void move_permanently_enemy(floor_info* floor, location* place, int i);
 void move_temporary_enemy(floor_info* floor, location* place, int i);
+void move_alive_enemies_in_treasure_room(treasure_info* treasure, location* place, achievement_info* achievement);
 void check_around_for_enemy(floor_info* floor, location* place, achievement_info* achievement);
 void transfer_snake_to_other_floor(floor_info* p_floor, floor_info* n_floor);
+void transfer_snake_to_treasure_room(floor_info* p_floor, treasure_info*);
 void fight(floor_info* floor, location* place, achievement_info* achievement) ;
-void shot_with_mace(floor_info* floor, location* place, achievement_info* achievement);
-void shot_with_sword(floor_info* floor, location* place, achievement_info* achievement);
-void shot_with_dagger(floor_info* floor, location* place, achievement_info* achievement);
-void shot_with_wand(floor_info* floor, location* place, achievement_info* achievement);
-void shot_with_arrow(floor_info* floor, location* place, achievement_info* achievement);
+void fight_with_active_damage_enchant(floor_info* floor, location* place, achievement_info* achievement);
+void shot_with_mace(floor_info* floor, location* place, achievement_info* achievement, int);
+void shot_with_sword(floor_info* floor, location* place, achievement_info* achievement, int);
+void shot_with_dagger(floor_info* floor, location* place, achievement_info* achievement, int);
+void shot_with_wand(floor_info* floor, location* place, achievement_info* achievement, int);
+void shot_with_arrow(floor_info* floor, location* place, achievement_info* achievement, int);
 int search_path_direction(floor_info* floor, location* place, int direction, int len);
 char* tell_name_enemy(char abbreviation);
+void check_active_enchant(achievement_info* achievement);
+void lose_page(achievement_info* achievement);
+void win_page(achievement_info* achievement);
+bool exit_the_game();
+void show_help_for_game();
 int handle_input_key(int ch);
 void set_to_zero(achievement_info*);
 void open_password_door(room_info* room, int door_number);
 char* input_without_initial_and_final_space(int max_size);
+void check_around_for_enemy_in_treasure_room(treasure_info* treasure, location* place, achievement_info* achievement);
+void fight_in_treasure_room(treasure_info* treasure, location* place, achievement_info* achievement);
+void fight_with_active_damage_enchant_in_treasure_room(treasure_info* treasure, location* place, achievement_info* achievement);
+void shot_with_mace_in_treasure_room(treasure_info* treasure, location* place, achievement_info* achievement, int power);
+void shot_with_sword_in_treasure_room(treasure_info* treasure, location* place, achievement_info* achievement, int power);
+void shot_with_dagger_in_treasure_room(treasure_info* treasure, location* place, achievement_info* achievement, int power);
+void shot_with_wand_in_treasure_room(treasure_info* treasure, location* place, achievement_info* achievement, int power);
+void shot_with_arrow_in_treasure_room(treasure_info* treasure, location* place, achievement_info* achievement, int power);
+int search_path_direction_in_treasure_room(treasure_info* treasure, location* place, int direction, int len);
+void score_kill_enemy(achievement_info* achievement, char name, int n);
+
 
 
 int main() {
@@ -848,12 +877,16 @@ void pre_game_menu() {
 			switch (selection)
 				{
 				case 0:      //"New game"
-					//clear();
-					//draw_page_border();
-					mvprintw(LINES/2,     COLS / 2 - 20, "Making the game ready...\n");
-					mvprintw(LINES/2 + 1, COLS / 2 - 20, "Please wait for seconds...\n");
-					//getch();
-					new_game();
+					if(is_login == 1 || is_login == 2) {
+						mvprintw(LINES/2,     COLS / 2 - 20, "Making the game ready...\n");
+						mvprintw(LINES/2 + 1, COLS / 2 - 20, "Please wait for seconds...\n");
+						new_game();
+					}
+					else {
+						mvprintw(LINES/2,     COLS / 2 - 20, "You haven't LOGIN the game!\n");
+						mvprintw(LINES/2 + 1, COLS / 2 - 20, "Return to previous page and login.\n");
+						getch();
+					}
 					break;
 				case 1:     //"Resume Game"
 					//
@@ -974,15 +1007,15 @@ void new_game() {
 		floor[i].open_corridor = -6;
 		sleep(1);
 	}
-	room_info treasure_room;
-	generate_treasure_room(&treasure_room);
+	treasure_info treasure;
+	generate_treasure_room(&treasure);
 
 	location position;
 	start_location_random(&position, &floor[0].room[0]);
 	
 	int g = 0;  //num_floor
 
-	while (1) {
+	while (1) {           //Start New game
 		clear();
 		print_map_conditionally(floor+g, &position); //map
 
@@ -993,7 +1026,16 @@ void new_game() {
 		print_enemy_conditionally(floor+g);     //enemies
 		check_around_for_enemy(floor+g, &position, &achievement);
 
-		//check for being alive 
+		if(achievement.health <= 0 || achievement.hunger_bar <= 0) {     //check for being alive 
+			lose_page(&achievement);
+			return;
+		}
+
+		if(go_to_treasure_room(floor+g, &position, g) == true) {
+			start_location_random(&position, &treasure.room);
+			transfer_snake_to_treasure_room(floor+g, &treasure);
+			break;
+		}
 
 		int temp = g;
 		pickup_and_check_trap_and_health(floor+g, &position, &achievement);
@@ -1006,16 +1048,21 @@ void new_game() {
 				break;
 			case 1:    //movement  (8 direction)
 				control_movement_for_player(floor+g, &position, &achievement, ch);
+				check_active_enchant(&achievement);
+				check_hunger_bar(&achievement);
+				move_alive_enemies(floor+g, &position, &achievement);
 				break;
 			case 2:    //fight    (Space)
 				fight(floor+g, &position, &achievement);
-				move_alive_enemies(floor+g, &position);
+				move_alive_enemies(floor+g, &position, &achievement);
+				check_active_enchant(&achievement);
+				check_hunger_bar(&achievement);
 				break;
-			default:
-				break;
+			case 3:     //exit     (Esc)
+				if(exit_the_game() == true)
+					return;
 		}
 
-		if(g == 10) { start_location_random(&position, &treasure_room);  break;} //It means exit of the room and go to treasure_room
 		if(g != temp) {       //if floor was changed
 			start_location_random(&position, &floor[g].room[0]);
 			transfer_snake_to_other_floor(floor+temp, floor+g);
@@ -1024,13 +1071,43 @@ void new_game() {
 		refresh();
 	}
 
-	while (1) {
+	while (1) {           //Treasure room
 		clear();
-		print_treasure_room(&treasure_room);
+		print_treasure_room(&treasure);
 		attron(A_REVERSE | COLOR_PAIR(color));
 		mvprintw(position.y, position.x, "$");
 		attroff(A_REVERSE | COLOR_PAIR(color));
-		control_in_treasure_room(&treasure_room, &position, &achievement);
+
+		check_trap_and_distance_in_treasure_room(&treasure, &position, &achievement);
+		check_around_for_enemy_in_treasure_room(&treasure, &position, &achievement);
+
+		if(achievement.health <= 0 || achievement.hunger_bar <= 0) {     //check for being alive 
+			lose_page(&achievement);
+			return;
+		}
+
+		int ch = getch();
+		int a = handle_input_key(ch);
+		switch (a) {
+			case 0:    //list and other 
+				control_list_treasure_room(&treasure, &position, &achievement, ch);
+				break;
+			case 1:    //movement  (8 direction)
+				control_movement_for_player_in_treasure(&treasure, &position, &achievement, ch);
+				check_active_enchant(&achievement);
+				check_hunger_bar(&achievement);
+				move_alive_enemies_in_treasure_room(&treasure, &position, &achievement);
+				break;
+			case 2:    //fight    (Space)
+				fight_in_treasure_room(&treasure, &position, &achievement);
+				move_alive_enemies_in_treasure_room(&treasure, &position, &achievement);
+				check_active_enchant(&achievement);
+				check_hunger_bar(&achievement);
+				break;
+			case 3:     //exit     (Esc)
+				if(exit_the_game() == true)
+					return;
+		}
 	}
 	
 }
@@ -1349,7 +1426,7 @@ void generate_room(room_info* a_room, int number) {
 				a_room->gold[i].value = rand() % 10 + 1;
 				a_room->cell[b][a] = 'g';
 			}
-			c = rand() % 2; //0 or 1         //TRAP
+			c = rand() % 3 + -(difficulty);        //TRAP        Easy--->0 to 1    Medium--->0 to 2     Hard--->1 to 3 
 			for(int i = 0; i < c ; i++) {
 				a = rand() % (a_room->wide - 2) + 1;    //x
 				b = rand() % (a_room->height - 2) + 1;  //y
@@ -1577,53 +1654,119 @@ void generate_a_floor(floor_info* a_floor, int number) {
 	
 	refresh();
 }
-void generate_treasure_room(room_info* room) {
+void generate_treasure_room(treasure_info* treasure) {
 	srand(time(NULL));
-    int a = (rand() % 8) + 8; 
-    int b = (rand() % 8) + 8;
+    int a = (rand() % 8) + 12; 
+    int b = (rand() % 8) + 12;
 	int c;
 
     for (int i = 0; i < a; i++) {
         for (int j = 0; j < b; j++) {
-            if (i == 0 || i == a - 1) room->cell[i][j] = '_';
-            else if (j == 0 || j == b - 1) room->cell[i][j] = '|';
-            else room->cell[i][j] = '.';
+            if (i == 0 || i == a - 1) treasure->room.cell[i][j] = '_';
+            else if (j == 0 || j == b - 1) treasure->room.cell[i][j] = '|';
+            else treasure->room.cell[i][j] = '.';
         }
     }
-	room->height = a;
-	room->wide = b;
+	treasure->room.height = a;
+	treasure->room.wide = b;
 
-	room->start_point.x = 60;
-	room->start_point.y = 15;
+	treasure->room.start_point.x = 60;
+	treasure->room.start_point.y = 15;
 
-	c = rand() % 10 + 8; //8 to 17           //TRAP
+	c = rand() % 10 + 15; //15 to 24           //TRAP
 	for(int i = 0; i < c ; i++) {
-		a = rand() % (room->wide - 2) + 1;    //x
-		b = rand() % (room->height - 2) + 1;  //y
-		if(check_value(room, b, a, '.') == false) { i-= 1; continue; }
-		room->cell[b][a] = 'T';
+		a = rand() % (treasure->room.wide - 2) + 1;    //x
+		b = rand() % (treasure->room.height - 2) + 1;  //y
+		if(check_value(&treasure->room, b, a, '.') == false) { i-= 1; continue; }
+		treasure->room.cell[b][a] = 'T';
 	}
 
 	c = rand() % 3; //0 or 1 or 2           //PILLAR
 	for(int i = 0; i < c ; i++) {
-		a = rand() % (room->wide - 2) + 1;    //x
-		b = rand() % (room->height - 2) + 1;  //y
-		if(check_value(room, b, a, '.') == false) { i-= 1; continue; }
-		room->cell[b][a] = 'O';
+		a = rand() % (treasure->room.wide - 2) + 1;    //x
+		b = rand() % (treasure->room.height - 2) + 1;  //y
+		if(check_value(&treasure->room, b, a, '.') == false) { i-= 1; continue; }
+		treasure->room.cell[b][a] = 'O';
+	}
+
+
+	for(int i = 0; i < 1 ; i++) {             //TREASURE
+		a = rand() % (treasure->room.wide - 2) + 1;    //x
+		b = rand() % (treasure->room.height - 2) + 1;  //y
+		if(check_value(&treasure->room, b, a, '.') == false) { i-= 1; continue; }
+		treasure->room.cell[b][a] = 'B';
+	}
+
+
+	for(int i = 0; i < 20; i++) {            //set all to 0
+		treasure->enemy[i].health = 0;
+	}
+	treasure->number_enemy = 0;
+	
+	c = rand() % 3 + 7 + -(difficulty)*2;         //enemies    Easy--->5 to 7    Medium--->7 to 9     Hard--->9 to 11
+	for(int i = 0; i < c ; i++) {
+		a = rand() % (treasure->room.wide - 2) + 1;    //x
+		b = rand() % (treasure->room.height - 2) + 1;  //y
+		if(check_value(&treasure->room, b, a, '.') == false) { i-= 1; continue; }
+		if(a % 5 == 0) {      //Deamon                                   //random type for enemy
+			treasure->enemy[treasure->number_enemy].name = 'D';
+			treasure->enemy[treasure->number_enemy].health = 5;
+			treasure->enemy[treasure->number_enemy].place.x = a + treasure->room.start_point.x;
+			treasure->enemy[treasure->number_enemy].place.y = b + treasure->room.start_point.y;
+			treasure->number_enemy += 1;
+			continue;  
+		} 
+		if(a % 5 == 1) {    //Fire Breathing Monster
+			treasure->enemy[treasure->number_enemy].name = 'F';
+			treasure->enemy[treasure->number_enemy].health = 10;
+			treasure->enemy[treasure->number_enemy].place.x = a + treasure->room.start_point.x;
+			treasure->enemy[treasure->number_enemy].place.y = b + treasure->room.start_point.y;
+			treasure->number_enemy += 1;
+			continue;
+		} 
+		if(a % 5 == 2) {        //Giant
+			treasure->enemy[treasure->number_enemy].name = 'G';
+			treasure->enemy[treasure->number_enemy].health = 15;
+			treasure->enemy[treasure->number_enemy].place.x = a + treasure->room.start_point.x;
+			treasure->enemy[treasure->number_enemy].place.y = b + treasure->room.start_point.y;
+			treasure->number_enemy += 1;
+			continue;  
+		} 
+		if(a % 5 == 3) {         //Snake
+			treasure->enemy[treasure->number_enemy].name = 'S';
+			treasure->enemy[treasure->number_enemy].health = 20;
+			treasure->enemy[treasure->number_enemy].place.x = a + treasure->room.start_point.x;
+			treasure->enemy[treasure->number_enemy].place.y = b + treasure->room.start_point.y;
+			treasure->number_enemy += 1;
+			continue;  
+		} 
+		if(a % 5 == 4) {        //Undeed
+			treasure->enemy[treasure->number_enemy].name = 'U';
+			treasure->enemy[treasure->number_enemy].health = 30;
+			treasure->enemy[treasure->number_enemy].place.x = a + treasure->room.start_point.x;
+			treasure->enemy[treasure->number_enemy].place.y = b + treasure->room.start_point.y;
+			treasure->number_enemy += 1;
+			continue;  
+		} 
 	}
 
 }
-void print_treasure_room(room_info* room) {
+void print_treasure_room(treasure_info* treasure) {
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
-	attron(COLOR_PAIR(1)); //Green
 	mvprintw(10, 50, "This is TREASURE_ROOM and you should defeat all the enemies!\n");
-	for (int i = 0; i < room->height; i++) {
-		for(int j = 0; j < room->wide; j++) {  //This will be printed from   X: 60  Y: 15
-			//mvprintw(room->start_point.y + i, room->start_point.x + j, "%c", room->cell[i][j]);
-			print_one_element(room->start_point.y + i, room->start_point.x + j, room->cell[i][j]);
+	for (int i = 0; i < treasure->room.height; i++) {
+		for(int j = 0; j < treasure->room.wide; j++) {  //This will be printed from   X: 60  Y: 15
+			//mvprintw(treasure->room.start_point.y + i, treasure->room.start_point.x + j, "%c", treasure->room.cell[i][j]);
+			attron(COLOR_PAIR(1)); //Green
+			print_one_element(treasure->room.start_point.y + i, treasure->room.start_point.x + j, treasure->room.cell[i][j]);
+			attroff(COLOR_PAIR(1));
 		}
 	}
-	attroff(COLOR_PAIR(1));
+	for(int i = 0; i < 20; i++) {
+		if(treasure->enemy[i].health > 0) {
+			mvprintw(treasure->enemy[i].place.y, treasure->enemy[i].place.x, "%c", treasure->enemy[i].name);
+		}
+	}
 }
 int handle_corridor(floor_info* floor, int first, int second, int index) {
 	int a = 1;
@@ -1807,18 +1950,11 @@ void control_list_and_inputs(floor_info* floor, location* place, int* num_floor,
 		mvprintw(place->y, place->x, "$");
 		attroff(A_REVERSE | COLOR_PAIR(3));
 		ch = getch();
-		//if(ch == 'M') break;
-		//else control_movement_and_inputs(floor, place, num_floor, achievement);
+		break;
+	case KEY_F(2):   //SHOW HELP
+		show_help_for_game();
+		break;
 	}
-
-	if(current >= 0 && *num_floor == 3) {  //
-		int a = place->x - floor->room[current].start_point.x;
-		int b = place->y - floor->room[current].start_point.y;
-		if(floor->room[current].cell[b][a] == 'X') {
-			*num_floor = 10;  //It means exit of the room and go to treasure_room
-		}
-	}
-
 }
 void control_movement_for_player(floor_info* floor, location* place, achievement_info* achievement, int ch) {
 	switch (ch)
@@ -1826,106 +1962,103 @@ void control_movement_for_player(floor_info* floor, location* place, achievement
 	case KEY_UP:
 		place->y -= 1;
 		if(check_location(floor, place) == false) place->y += 1;
-		else { achievement->movement += 1; cure_when_is_unhungry(achievement); move_alive_enemies(floor, place); }
+		else { achievement->movement += 1; cure_when_is_unhungry(achievement);}
 		break;
 	case KEY_DOWN:
 		place->y += 1;
 		if(check_location(floor, place) == false) place->y -= 1;
-		else { achievement->movement += 1; cure_when_is_unhungry(achievement); move_alive_enemies(floor, place); }
+		else { achievement->movement += 1; cure_when_is_unhungry(achievement);}
 		break;
 	case KEY_RIGHT:
 		place->x += 1;
 		if(check_location(floor, place) == false) place->x -= 1;
-		else { achievement->movement += 1; cure_when_is_unhungry(achievement); move_alive_enemies(floor, place); }
+		else { achievement->movement += 1; cure_when_is_unhungry(achievement);}
 		break;
 	case KEY_LEFT:
 		place->x -= 1;
 		if(check_location(floor, place) == false) place->x += 1;
-		else { achievement->movement += 1; cure_when_is_unhungry(achievement); move_alive_enemies(floor, place); }
+		else { achievement->movement += 1; cure_when_is_unhungry(achievement);}
 		break;
 	case KEY_NPAGE:
 		place->x += 1;
 		place->y += 1;
 		if(check_location(floor, place) == false) { place->x -= 1; place->y -= 1; }
-		else { achievement->movement += 1; cure_when_is_unhungry(achievement); move_alive_enemies(floor, place); }
+		else { achievement->movement += 1; cure_when_is_unhungry(achievement);}
 		break;
 	case KEY_HOME:
 		place->x -= 1;
 		place->y -= 1;
 		if(check_location(floor, place) == false) { place->x += 1; place->y += 1; }
-		else { achievement->movement += 1; cure_when_is_unhungry(achievement); move_alive_enemies(floor, place); }
+		else { achievement->movement += 1; cure_when_is_unhungry(achievement);}
 		break;
 	case KEY_PPAGE:
 		place->x += 1;
 		place->y -= 1;
 		if(check_location(floor, place) == false) { place->x -= 1; place->y += 1; }
-		else { achievement->movement += 1; cure_when_is_unhungry(achievement); move_alive_enemies(floor, place); }
+		else { achievement->movement += 1; cure_when_is_unhungry(achievement);}
 		break;
 	case KEY_END:
 		place->x -= 1;
 		place->y += 1;
 		if(check_location(floor, place) == false) { place->x += 1; place->y -= 1; }
-		else { achievement->movement += 1; cure_when_is_unhungry(achievement); move_alive_enemies(floor, place); }
+		else { achievement->movement += 1; cure_when_is_unhungry(achievement);}
 		break;
 	}
 }
-void control_in_treasure_room(room_info* room, location* place, achievement_info* achievement) {
-	init_pair(1, COLOR_GREEN, COLOR_BLACK);
-
-	check_for_trap(room, place, achievement);
-	if(achievement->movement > 100 + difficulty * 50) {   //It will be hungry after a distance
-		achievement->hunger_bar -= 2;
-		achievement->movement = 0;
-	}
-
-
-	int ch = getch();
+void control_movement_for_player_in_treasure(treasure_info* treasure, location* place, achievement_info* achievement, int ch) {
 	switch (ch)
 	{
 	case KEY_UP:
 		place->y -= 1;
-		if(check_location_in_treasure_room(room, place) == false) place->y += 1;
+		if(check_location_in_treasure_room(treasure, place) == false) place->y += 1;
 		else { achievement->movement += 1; cure_when_is_unhungry(achievement); }
 		break;
 	case KEY_DOWN:
 		place->y += 1;
-		if(check_location_in_treasure_room(room, place) == false) place->y -= 1;
+		if(check_location_in_treasure_room(treasure, place) == false) place->y -= 1;
 		else { achievement->movement += 1; cure_when_is_unhungry(achievement); }
 		break;
 	case KEY_RIGHT:
 		place->x += 1;
-		if(check_location_in_treasure_room(room, place) == false) place->x -= 1;
+		if(check_location_in_treasure_room(treasure, place) == false) place->x -= 1;
 		else { achievement->movement += 1; cure_when_is_unhungry(achievement); }
 		break;
 	case KEY_LEFT:
 		place->x -= 1;
-		if(check_location_in_treasure_room(room, place) == false) place->x += 1;
+		if(check_location_in_treasure_room(treasure, place) == false) place->x += 1;
 		else { achievement->movement += 1; cure_when_is_unhungry(achievement); }
 		break;
 	case KEY_NPAGE:
 		place->x += 1;
 		place->y += 1;
-		if(check_location_in_treasure_room(room, place) == false) { place->x -= 1; place->y -= 1; }
+		if(check_location_in_treasure_room(treasure, place) == false) { place->x -= 1; place->y -= 1; }
 		else { achievement->movement += 1; cure_when_is_unhungry(achievement); }
 		break;
 	case KEY_HOME:
 		place->x -= 1;
 		place->y -= 1;
-		if(check_location_in_treasure_room(room, place) == false) { place->x += 1; place->y += 1; }
+		if(check_location_in_treasure_room(treasure, place) == false) { place->x += 1; place->y += 1; }
 		else { achievement->movement += 1; cure_when_is_unhungry(achievement); }
 		break;
 	case KEY_PPAGE:
 		place->x += 1;
 		place->y -= 1;
-		if(check_location_in_treasure_room(room, place) == false) { place->x -= 1; place->y += 1; }
+		if(check_location_in_treasure_room(treasure, place) == false) { place->x -= 1; place->y += 1; }
 		else { achievement->movement += 1; cure_when_is_unhungry(achievement); }
 		break;
 	case KEY_END:
 		place->x -= 1;
 		place->y += 1;
-		if(check_location_in_treasure_room(room, place) == false) { place->x += 1; place->y -= 1; }
+		if(check_location_in_treasure_room(treasure, place) == false) { place->x += 1; place->y -= 1; }
 		else { achievement->movement += 1; cure_when_is_unhungry(achievement); }
 		break;
+	}
+}
+void control_list_treasure_room(treasure_info* treasure, location* place, achievement_info* achievement, int ch) {
+	init_pair(1, COLOR_GREEN, COLOR_BLACK);
+
+	switch (ch)
+	{
 	case 'i':     //list for weapons
 		list_of_weapon(&achievement->weapon);
 		break;
@@ -1941,6 +2074,12 @@ void control_in_treasure_room(room_info* room, location* place, achievement_info
 		break;
 	case 'H':     //show hunger_bar and Health_rate
 		show_health_rate(achievement);
+		break;
+	case 'g':
+		pickup_a_thing(&treasure->room, place, achievement);
+		break;
+	case KEY_F(2):   //SHOW HELP
+		show_help_for_game();
 		break;
 	}
 }
@@ -1982,13 +2121,22 @@ bool check_location(floor_info* floor, location* place) {
 
 	return false;
 }
-bool check_location_in_treasure_room(room_info* room, location* place) {
-	if( place->x > room->start_point.x  &&  place->x < room->start_point.x + room->wide - 1 &&
-		place->y > room->start_point.y  &&  place->y < room->start_point.y + room->height - 1 ) {
-			if(room->cell[place->y - room->start_point.y][place->x - room->start_point.x] == 'O') 
+bool check_location_in_treasure_room(treasure_info* treasure, location* place) {
+	if( place->x > treasure->room.start_point.x  &&  place->x < treasure->room.start_point.x + treasure->room.wide - 1 &&
+		place->y > treasure->room.start_point.y  &&  place->y < treasure->room.start_point.y + treasure->room.height - 1 ) {
+			if(treasure->room.cell[place->y - treasure->room.start_point.y][place->x - treasure->room.start_point.x] == 'O') 
 				return false;
-			else 
+			else {
 				return true;
+				// for(int i = 0; i < 20; i++) {
+				// 	if( treasure->enemy[i].health > 0 && 
+				// 		place->x == treasure->enemy[i].place.x && 
+				// 		place->y == treasure->enemy[i].place.y ) {
+				// 			return false;
+				// 	}
+				// }
+				// return true;
+			}
 	}
 	return false;
 }
@@ -2002,10 +2150,29 @@ bool check_location_as_be_enemy(floor_info* floor, location* place, int j) {
 	}
 	return false;
 }
+bool check_location_as_be_enemy_in_treasure_room(treasure_info* treasure, location* place, int j) {
+	for(int i = 0; i < 20; i++) {
+		if(i == j) continue;
+		if(treasure->enemy[i].health > 0) {
+			if(treasure->enemy[i].place.x == place->x && treasure->enemy[i].place.y == place->y)
+				return true;
+		}
+	}
+	return false;
+}
 int check_location_as_be_enemy_with_index(floor_info* floor, location* place) {
 	for(int i = 0; i < 16; i++) {
 		if(floor->enemy[i].health > 0 && floor->enemy[i].room <= floor->open_room) {
 			if(floor->enemy[i].place.x == place->x && floor->enemy[i].place.y == place->y)
+				return i - 20;                  //it decrease 20 unit for a sign
+		}
+	}
+	return 0;
+}
+int check_location_as_be_enemy_with_index_in_treasure_room(treasure_info* treasure, location* place) {
+	for(int i = 0; i < 20; i++) {
+		if(treasure->enemy[i].health > 0) {
+			if(treasure->enemy[i].place.x == place->x && treasure->enemy[i].place.y == place->y)
 				return i - 20;                  //it decrease 20 unit for a sign
 		}
 	}
@@ -2097,6 +2264,14 @@ void pickup_and_check_trap_and_health(floor_info* floor, location* place, achiev
 	}
 	if(achievement->movement > 100 + difficulty * 50) {   //It will be hungry after a distance
 		achievement->hunger_bar -= 1;
+		achievement->movement = 0;
+	}
+}
+void check_trap_and_distance_in_treasure_room(treasure_info* treasure, location* place, achievement_info* achievement) {
+	check_for_trap(&treasure->room, place, achievement);
+	
+	if(achievement->movement > 100 + difficulty * 50) {   //It will be hungry after a distance
+		achievement->hunger_bar -= 2;
 		achievement->movement = 0;
 	}
 }
@@ -2261,7 +2436,7 @@ void list_of_enchant(enchant_info* enchant) {
 				attron(COLOR_PAIR(1));
 				mvprintw(2, 60, "Damage \u2620 enchant was activated!\n");
 				enchant->current = 'd';
-				enchant->speed_amount -= 1;
+				enchant->damage_amount -= 1;
 				enchant->active = true;
 				attroff(COLOR_PAIR(1));
 			}
@@ -2392,7 +2567,7 @@ void eat_a_meal(achievement_info* achievement) {
 	}
 	if(achievement->hunger_bar < 20 || achievement->health < 100) {       //eat a meal if was hungry
 		attron(COLOR_PAIR(1));
-		achievement->hunger_bar += 3 + difficulty;
+		achievement->hunger_bar += 3 + difficulty;     //increasing hunger_bar
 		achievement->food_amount -= 1;
 		mvprintw(11, 10, "Good! You ate a meal!");
 		if(achievement->health < 100) {
@@ -2422,34 +2597,39 @@ void cure_when_is_unhungry(achievement_info* achievement) {
 		return;
 	}
 	attron(COLOR_PAIR(1));
-	if(achievement->movement_unhungry == 400) {
-		achievement->health += 4 + -(difficulty);     //3 for easy    4 for medium     5 for hard
+	if(achievement->movement_unhungry == 350) {
+		achievement->health += 12 + (difficulty)*3;     //15 for easy    12 for medium     9 for hard
 		if(achievement->health > 100) achievement->health = 100;
-		mvprintw(1, 5, "You walked 400 meters with full hunger_bar!");
-		mvprintw(2, 5, "Your health_bar was increased %d units", 4 + -(difficulty));
+		mvprintw(1, 5, "You walked 350 meters with full hunger_bar!");
+		mvprintw(2, 5, "Your health_bar was increased %d units", 4 + (difficulty));
 		achievement->movement_unhungry = 0;
 		getch();
 	}
-	else if(achievement->movement_unhungry == 250) {
-		achievement->health += 2 + -(difficulty);     //1 for easy    2 for medium     3 for hard
-		if(achievement->health > 100) achievement->health = 100;
-		mvprintw(1, 5, "You walked 250 meters with full hunger_bar!");
-		mvprintw(2, 5, "Your health_bar was increased %d units", 2 + -(difficulty));
-		getch();
-	}
 	else if(achievement->movement_unhungry == 150) {
-		achievement->health += 1;                     //1 for all mode
+		achievement->health += 8 + (difficulty)*2;     //10 for easy    8 for medium     6 for hard
 		if(achievement->health > 100) achievement->health = 100;
 		mvprintw(1, 5, "You walked 150 meters with full hunger_bar!");
-		mvprintw(2, 5, "Your health_bar was increased %d units", 1);
+		mvprintw(2, 5, "Your health_bar was increased %d units", 2 + (difficulty));
+		getch();
+	}
+	else if(achievement->movement_unhungry == 50) {
+		achievement->health += 5;                     //5 for all mode
+		if(achievement->health > 100) achievement->health = 100;
+		mvprintw(1, 5, "You walked 50 meters with full hunger_bar!");
+		mvprintw(2, 5, "Your health_bar was increased %d units", 5);
 		getch();
 	}
 	attroff(COLOR_PAIR(1));
 }
-void set_to_zero(achievement_info* achievement) {
-	for(int i = 0; i < 35; i++) {
-		achievement->enemy[i].health = 0;
+void check_hunger_bar(achievement_info* achievement) {
+	if(achievement->hunger_bar >= 8 && achievement->hunger_bar <= 10) {    //in range 8 to 10 -----> 5 units decrease
+		achievement->health -= 5;
 	}
+	if(achievement->hunger_bar < 8) {                //lower than 8  ------> 8 unit decrease
+		achievement->health -= 8;
+	}
+}
+void set_to_zero(achievement_info* achievement) {
 	achievement->save_gold = 0;
 	achievement->score = 0;
 	achievement->health = 100;
@@ -2464,18 +2644,22 @@ void set_to_zero(achievement_info* achievement) {
 	achievement->enchant.damage_amount = 0;
 	achievement->enchant.health_amount = 0;
 	achievement->enchant.speed_amount = 0;
+	achievement->enchant.distance = 0;
 	achievement->movement = 0;
 	achievement->food_amount = 0;
 	achievement->movement_unhungry = 0;
 }
 void print_enemy_conditionally(floor_info* floor) {
-	for(int i = 0; i < 7; i++) {
+	for(int i = 0; i < 16; i++) {
 		if(floor->enemy[i].health > 0 && floor->enemy[i].room <= floor->open_room) {
 			mvprintw(floor->enemy[i].place.y, floor->enemy[i].place.x, "%c", floor->enemy[i].name);
 		}
 	}
 }
-void move_alive_enemies(floor_info* floor, location* place) {
+void move_alive_enemies(floor_info* floor, location* place, achievement_info* achievement) {
+	if(achievement->enchant.active == true && achievement->enchant.current == 's') {   //if speed enchant was active
+		if(achievement->enchant.distance % 2) return;
+	}
 	for(int i = 0; i < 16; i++) {
 		if(floor->enemy[i].health > 0 && floor->enemy[i].room <= floor->open_room) {
 			switch (floor->enemy[i].name) {
@@ -2549,6 +2733,41 @@ void move_temporary_enemy(floor_info* floor, location* place, int i) {
 			floor->enemy[i].place.y -= 1;
 	}
 }
+void move_alive_enemies_in_treasure_room(treasure_info* treasure, location* place, achievement_info* achievement) {
+	if(achievement->enchant.active == true && achievement->enchant.current == 's') {   //if speed enchant was active
+		if(achievement->enchant.distance % 2) return;
+	}
+	for(int i = 0; i < 20; i++) {
+		if(treasure->enemy[i].place.x > place->x) {       //just follow till door
+			treasure->enemy[i].place.x -= 1;
+			if( check_location_in_treasure_room(treasure, &treasure->enemy[i].place) == false || 
+				treasure->enemy[i].place.x == place->x && treasure->enemy[i].place.y == place->y ||
+				check_location_as_be_enemy_in_treasure_room(treasure, &treasure->enemy[i].place, i) == true)
+				treasure->enemy[i].place.x += 1;
+		}
+		else if(treasure->enemy[i].place.x < place->x) {
+			treasure->enemy[i].place.x += 1;
+			if( check_location_in_treasure_room(treasure, &treasure->enemy[i].place) == false || 
+				treasure->enemy[i].place.x == place->x && treasure->enemy[i].place.y == place->y ||
+				check_location_as_be_enemy_in_treasure_room(treasure, &treasure->enemy[i].place, i) == true)
+				treasure->enemy[i].place.x -= 1;
+		}
+		if(treasure->enemy[i].place.y > place->y) {
+			treasure->enemy[i].place.y -= 1;
+			if( check_location_in_treasure_room(treasure, &treasure->enemy[i].place) == false || 
+				treasure->enemy[i].place.x == place->x && treasure->enemy[i].place.y == place->y ||
+				check_location_as_be_enemy_in_treasure_room(treasure, &treasure->enemy[i].place, i) == true)
+				treasure->enemy[i].place.y += 1;
+		}
+		else if(treasure->enemy[i].place.y < place->y) {
+			treasure->enemy[i].place.y += 1;
+			if( check_location_in_treasure_room(treasure, &treasure->enemy[i].place) == false || 
+				treasure->enemy[i].place.x == place->x && treasure->enemy[i].place.y == place->y ||
+				check_location_as_be_enemy_in_treasure_room(treasure, &treasure->enemy[i].place, i) == true)
+				treasure->enemy[i].place.y -= 1;
+		}
+	}
+}
 void transfer_snake_to_other_floor(floor_info* p_floor, floor_info* n_floor) {
 	for(int i = 0; i < 16; i++) {
 		if(p_floor->enemy[i].health > 0 && p_floor->enemy[i].name == 'S') {
@@ -2557,6 +2776,18 @@ void transfer_snake_to_other_floor(floor_info* p_floor, floor_info* n_floor) {
 			n_floor->enemy[n_floor->number_enemy].health = p_floor->enemy[i].health;
 			start_location_random(&n_floor->enemy[n_floor->number_enemy].place, &n_floor->room[0]);
 			n_floor->number_enemy += 1;
+			p_floor->enemy[i].health = 0;
+		}
+	}
+}
+void transfer_snake_to_treasure_room(floor_info* p_floor, treasure_info* treasure) {
+	for(int i = 0; i < 16; i++) {
+		if(p_floor->enemy[i].health > 0 && p_floor->enemy[i].name == 'S') {
+			treasure->enemy[treasure->number_enemy].name = 'S';
+			treasure->enemy[treasure->number_enemy].room = 0;
+			treasure->enemy[treasure->number_enemy].health = p_floor->enemy[i].health;
+			start_location_random(&treasure->enemy[treasure->number_enemy].place, &treasure->room);
+			treasure->number_enemy += 1;
 			p_floor->enemy[i].health = 0;
 		}
 	}
@@ -2581,6 +2812,7 @@ void check_around_for_enemy(floor_info* floor, location* place, achievement_info
 							mvprintw(2, 5, "Your health_rate was decreased 2 units!");
 							getch();
 							mvprintw(1, 5, "               ");
+							mvprintw(2, 5, "                                       ");
 							break;
 						case 'F':             //Fire Breathing Monster    10
 							achievement->health -= 4;
@@ -2588,6 +2820,7 @@ void check_around_for_enemy(floor_info* floor, location* place, achievement_info
 							mvprintw(2, 5, "Your health_rate was decreased 4 units!");
 							getch();
 							mvprintw(1, 5, "                               ");
+							mvprintw(2, 5, "                                       ");
 							break;
 						case 'G':             //Giant        15
 							achievement->health -= 7;
@@ -2595,6 +2828,7 @@ void check_around_for_enemy(floor_info* floor, location* place, achievement_info
 							mvprintw(2, 5, "Your health_rate was decreased 7 units!");
 							getch();
 							mvprintw(1, 5, "              ");
+							mvprintw(2, 5, "                                       ");
 							break;
 						case 'S':             //Snake         20
 							achievement->health -= 12;
@@ -2602,6 +2836,7 @@ void check_around_for_enemy(floor_info* floor, location* place, achievement_info
 							mvprintw(2, 5, "Your health_rate was decreased 12 units!");
 							getch();
 							mvprintw(1, 5, "              ");
+							mvprintw(2, 5, "                                        ");
 							break;
 						case 'U':             //Undeed        30
 							achievement->health -= 20;
@@ -2609,6 +2844,7 @@ void check_around_for_enemy(floor_info* floor, location* place, achievement_info
 							mvprintw(2, 5, "Your health_rate was decreased 20 units!");
 							getch();
 							mvprintw(1, 5, "               ");
+							mvprintw(2, 5, "                                        ");
 							break;
 					}
 				break;
@@ -2618,25 +2854,48 @@ void check_around_for_enemy(floor_info* floor, location* place, achievement_info
 	attroff(COLOR_PAIR(2));
 }
 void fight(floor_info* floor, location* place, achievement_info* achievement) { 
+	if(achievement->enchant.active == true && achievement->enchant.current == 'd') {   //Damage Enchant is active
+		fight_with_active_damage_enchant(floor, place, achievement);                   //weapon power is 2 times than usual
+		return;
+	}
 	switch (achievement->weapon.current) {
-		case 'm':                 //Mace                //short_range
-			shot_with_mace(floor, place, achievement);
+		case 'm':                 //Mace  5              //short_range
+			shot_with_mace(floor, place, achievement, 5);
 			break;
-		case 's':                 //Sword
-			shot_with_sword(floor, place, achievement);
+		case 's':                 //Sword  10
+			shot_with_sword(floor, place, achievement, 10);
 			break;
-		case 'd':             //Dagger               //Thrown
-			shot_with_dagger(floor, place, achievement);
+		case 'd':             //Dagger    12          //Thrown
+			shot_with_dagger(floor, place, achievement, 12);
 			break;
-		case 'w':             //Magic Wand
-			shot_with_wand(floor, place, achievement);
+		case 'w':             //Magic Wand    15
+			shot_with_wand(floor, place, achievement, 15);
 			break;
-		case 'a':             //Normal Arrow
-			shot_with_arrow(floor, place, achievement);
+		case 'a':             //Normal Arrow   5
+			shot_with_arrow(floor, place, achievement, 5);
 			break;
 	}
 }
-void shot_with_mace(floor_info* floor, location* place, achievement_info* achievement) {
+void fight_with_active_damage_enchant(floor_info* floor, location* place, achievement_info* achievement) {
+	switch (achievement->weapon.current) {
+		case 'm':                 //Mace  5              //short_range
+			shot_with_mace(floor, place, achievement, 10);
+			break;
+		case 's':                 //Sword  10
+			shot_with_sword(floor, place, achievement, 20);
+			break;
+		case 'd':             //Dagger    12          //Thrown
+			shot_with_dagger(floor, place, achievement, 24);
+			break;
+		case 'w':             //Magic Wand    15
+			shot_with_wand(floor, place, achievement, 30);
+			break;
+		case 'a':             //Normal Arrow   5
+			shot_with_arrow(floor, place, achievement, 10);
+			break;
+	}
+}
+void shot_with_mace(floor_info* floor, location* place, achievement_info* achievement, int power) {
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
 	init_pair(2, COLOR_RED, COLOR_BLACK);
 	attron(COLOR_PAIR(1));
@@ -2651,17 +2910,20 @@ void shot_with_mace(floor_info* floor, location* place, achievement_info* achiev
 			if( floor->enemy[j].health > 0 && floor->enemy[j].room <= floor->open_room &&
 				floor->enemy[j].place.x == temp.x && floor->enemy[j].place.y == temp.y) {
 					name = tell_name_enemy(floor->enemy[j].name);    //full name
-					floor->enemy[j].health -= 5;   //its damage
+					floor->enemy[j].health -= power;   //its damage
 					mvprintw(1, 50, "You hit %s with Mace \u2692 !", name);
 					mvprintw(2, 50, "%s life_remain is  %d", name, floor->enemy[j].health > 0 ? floor->enemy[j].health : 0);
 					getch();
+					mvprintw(1, 50, "                                           ");
+					mvprintw(2, 50, "                                           ");
+					if(floor->enemy[j].health <= 0) score_kill_enemy(achievement, floor->enemy[j].name, 1);
 					break;
 			}
 		}
 	}
 	attroff(COLOR_PAIR(1));
 }
-void shot_with_sword(floor_info* floor, location* place, achievement_info* achievement) {
+void shot_with_sword(floor_info* floor, location* place, achievement_info* achievement, int power) {
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
 	init_pair(2, COLOR_RED, COLOR_BLACK);
 	attron(COLOR_PAIR(1));
@@ -2676,17 +2938,20 @@ void shot_with_sword(floor_info* floor, location* place, achievement_info* achie
 			if( floor->enemy[j].health > 0 && floor->enemy[j].room <= floor->open_room &&
 				floor->enemy[j].place.x == temp.x && floor->enemy[j].place.y == temp.y) {
 					name = tell_name_enemy(floor->enemy[j].name);          //full name
-					floor->enemy[j].health -= 10;     //its damage
+					floor->enemy[j].health -= power;     //its damage
 					mvprintw(1, 50, "You hit %s with Sword \u2694!", name);
 					mvprintw(2, 50, "%s life_remain is  %d", name, floor->enemy[j].health > 0 ? floor->enemy[j].health : 0);
 					getch();
+					mvprintw(1, 50, "                                           ");
+					mvprintw(2, 50, "                                           ");
+					if(floor->enemy[j].health <= 0) score_kill_enemy(achievement, floor->enemy[j].name, 1);
 					break;
 			}
 		}
 	}
 	attroff(COLOR_PAIR(1));
 }
-void shot_with_dagger(floor_info* floor, location* place, achievement_info* achievement) {
+void shot_with_dagger(floor_info* floor, location* place, achievement_info* achievement, int power) {
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
 	init_pair(2, COLOR_RED, COLOR_BLACK);
 	if(achievement->weapon.dagger_amount == 0) {
@@ -2710,12 +2975,15 @@ void shot_with_dagger(floor_info* floor, location* place, achievement_info* achi
 			if(output < 0) {         //Hit to an enemy
 				output += 20;  //index
 				attron(COLOR_PAIR(1));
-				floor->enemy[output].health -= 12;   //its damage
+				floor->enemy[output].health -= power;   //its damage
 				name = tell_name_enemy(floor->enemy[output].name);
 				mvprintw(1, 50, "You hit %s with Dagger \U0001F5E1 ", name);
 				mvprintw(2, 50, "%s life_remain is  %d", name, floor->enemy[output].health > 0 ? floor->enemy[output].health : 0);
 				achievement->weapon.dagger_amount -= 1;
 				getch();
+				mvprintw(1, 50, "                                                    ");
+				mvprintw(2, 50, "                                                    ");
+				if(floor->enemy[output].health <= 0) score_kill_enemy(achievement, floor->enemy[output].name, 1);
 				attroff(COLOR_PAIR(1));				
 			}
 			else {
@@ -2728,6 +2996,17 @@ void shot_with_dagger(floor_info* floor, location* place, achievement_info* achi
 					mvprintw(2, 50, "You can pick_up your thrown weapon from the floor!");
 					achievement->weapon.dagger_amount -= 1;
 					getch();
+					mvprintw(1, 50, "                                                    ");
+					mvprintw(2, 50, "                                                    ");
+					attroff(COLOR_PAIR(2));
+				}
+				else {
+					attron(COLOR_PAIR(2));
+					mvprintw(1, 50, "You didn't hit anyone!");
+					mvprintw(2, 50, "Weapons can't fall down in corridors! Your weapon amount didn't decreased!");
+					getch();
+					mvprintw(1, 50, "                                                    ");
+					mvprintw(2, 50, "                                                                          ");
 					attroff(COLOR_PAIR(2));
 				}
 			}
@@ -2737,12 +3016,15 @@ void shot_with_dagger(floor_info* floor, location* place, achievement_info* achi
 			if(output < 0) {         //Hit to an enemy
 				output += 20;  //index
 				attron(COLOR_PAIR(1));
-				floor->enemy[output].health -= 12;   //its damage
+				floor->enemy[output].health -= power;   //its damage
 				name = tell_name_enemy(floor->enemy[output].name);
 				mvprintw(1, 50, "You hit %s with Dagger \U0001F5E1 ", name);
 				mvprintw(2, 50, "%s life_remain is  %d", name, floor->enemy[output].health > 0 ? floor->enemy[output].health : 0);
 				achievement->weapon.dagger_amount -= 1;
 				getch();
+				mvprintw(1, 50, "                                                    ");
+				mvprintw(2, 50, "                                                    ");
+				if(floor->enemy[output].health <= 0) score_kill_enemy(achievement, floor->enemy[output].name, 1);
 				attroff(COLOR_PAIR(1));				
 			}
 			else {
@@ -2755,6 +3037,17 @@ void shot_with_dagger(floor_info* floor, location* place, achievement_info* achi
 					mvprintw(2, 50, "You can pick_up your thrown weapon from the floor!");
 					achievement->weapon.dagger_amount -= 1;
 					getch();
+					mvprintw(1, 50, "                                                    ");
+					mvprintw(2, 50, "                                                    ");
+					attroff(COLOR_PAIR(2));
+				}
+				else {
+					attron(COLOR_PAIR(2));
+					mvprintw(1, 50, "You didn't hit anyone!");
+					mvprintw(2, 50, "Weapons can't fall down in corridors! Your weapon amount didn't decreased!");
+					getch();
+					mvprintw(1, 50, "                                                    ");
+					mvprintw(2, 50, "                                                                          ");
 					attroff(COLOR_PAIR(2));
 				}
 			}
@@ -2764,12 +3057,15 @@ void shot_with_dagger(floor_info* floor, location* place, achievement_info* achi
 			if(output < 0) {         //Hit to an enemy
 				output += 20;  //index
 				attron(COLOR_PAIR(1));
-				floor->enemy[output].health -= 12;   //its damage
+				floor->enemy[output].health -= power;   //its damage
 				name = tell_name_enemy(floor->enemy[output].name);
 				mvprintw(1, 50, "You hit %s with Dagger \U0001F5E1 ", name);
 				mvprintw(2, 50, "%s life_remain is  %d", name, floor->enemy[output].health > 0 ? floor->enemy[output].health : 0);
 				achievement->weapon.dagger_amount -= 1;
 				getch();
+				mvprintw(1, 50, "                                                    ");
+				mvprintw(2, 50, "                                                    ");
+				if(floor->enemy[output].health <= 0) score_kill_enemy(achievement, floor->enemy[output].name, 1);
 				attroff(COLOR_PAIR(1));				
 			}
 			else {
@@ -2782,6 +3078,17 @@ void shot_with_dagger(floor_info* floor, location* place, achievement_info* achi
 					mvprintw(2, 50, "You can pick_up your thrown weapon from the floor!");
 					achievement->weapon.dagger_amount -= 1;
 					getch();
+					mvprintw(1, 50, "                                                    ");
+					mvprintw(2, 50, "                                                    ");
+					attroff(COLOR_PAIR(2));
+				}
+				else {
+					attron(COLOR_PAIR(2));
+					mvprintw(1, 50, "You didn't hit anyone!");
+					mvprintw(2, 50, "Weapons can't fall down in corridors! Your weapon amount didn't decreased!");
+					getch();
+					mvprintw(1, 50, "                                                    ");
+					mvprintw(2, 50, "                                                                          ");
 					attroff(COLOR_PAIR(2));
 				}
 			}
@@ -2791,12 +3098,15 @@ void shot_with_dagger(floor_info* floor, location* place, achievement_info* achi
 			if(output < 0) {         //Hit to an enemy
 				output += 20;  //index
 				attron(COLOR_PAIR(1));
-				floor->enemy[output].health -= 12;   //its damage
+				floor->enemy[output].health -= power;   //its damage
 				name = tell_name_enemy(floor->enemy[output].name);
 				mvprintw(1, 50, "You hit %s with Dagger \U0001F5E1 ", name);
 				mvprintw(2, 50, "%s life_remain is  %d", name, floor->enemy[output].health > 0 ? floor->enemy[output].health : 0);
 				achievement->weapon.dagger_amount -= 1;
 				getch();
+				mvprintw(1, 50, "                                                    ");
+				mvprintw(2, 50, "                                                    ");
+				if(floor->enemy[output].health <= 0) score_kill_enemy(achievement, floor->enemy[output].name, 1);
 				attroff(COLOR_PAIR(1));				
 			}
 			else {
@@ -2809,6 +3119,17 @@ void shot_with_dagger(floor_info* floor, location* place, achievement_info* achi
 					mvprintw(2, 50, "You can pick_up your thrown weapon from the floor!");
 					achievement->weapon.dagger_amount -= 1;
 					getch();
+					mvprintw(1, 50, "                                                    ");
+					mvprintw(2, 50, "                                                    ");
+					attroff(COLOR_PAIR(2));
+				}
+				else {
+					attron(COLOR_PAIR(2));
+					mvprintw(1, 50, "You didn't hit anyone!");
+					mvprintw(2, 50, "Weapons can't fall down in corridors! Your weapon amount didn't decreased!");
+					getch();
+					mvprintw(1, 50, "                                                    ");
+					mvprintw(2, 50, "                                                                          ");
 					attroff(COLOR_PAIR(2));
 				}
 			}
@@ -2821,7 +3142,7 @@ void shot_with_dagger(floor_info* floor, location* place, achievement_info* achi
 			return;
 	}
 }
-void shot_with_wand(floor_info* floor, location* place, achievement_info* achievement) {
+void shot_with_wand(floor_info* floor, location* place, achievement_info* achievement, int power) {
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
 	init_pair(2, COLOR_RED, COLOR_BLACK);
 	if(achievement->weapon.wand_amount == 0) {
@@ -2845,12 +3166,15 @@ void shot_with_wand(floor_info* floor, location* place, achievement_info* achiev
 			if(output < 0) {         //Hit to an enemy
 				output += 20;  //index
 				attron(COLOR_PAIR(1));
-				floor->enemy[output].health -= 15;   //its damage
+				floor->enemy[output].health -= power;   //its damage
 				name = tell_name_enemy(floor->enemy[output].name);
 				mvprintw(1, 50, "You hit %s with Magic Wand \u2020 ", name);
 				mvprintw(2, 50, "%s life_remain is  %d", name, floor->enemy[output].health > 0 ? floor->enemy[output].health : 0);
 				achievement->weapon.wand_amount -= 1;
 				getch();
+				mvprintw(1, 50, "                                                    ");
+				mvprintw(2, 50, "                                                    ");
+				if(floor->enemy[output].health <= 0) score_kill_enemy(achievement, floor->enemy[output].name, 1);
 				attroff(COLOR_PAIR(1));				
 			}
 			else {
@@ -2863,6 +3187,17 @@ void shot_with_wand(floor_info* floor, location* place, achievement_info* achiev
 					mvprintw(2, 50, "You can pick_up your thrown weapon from the floor!");
 					achievement->weapon.wand_amount -= 1;
 					getch();
+					mvprintw(1, 50, "                                                    ");
+					mvprintw(2, 50, "                                                    ");
+					attroff(COLOR_PAIR(2));
+				}
+				else {
+					attron(COLOR_PAIR(2));
+					mvprintw(1, 50, "You didn't hit anyone!");
+					mvprintw(2, 50, "Weapons can't fall down in corridors! Your weapon amount didn't decreased!");
+					getch();
+					mvprintw(1, 50, "                                                    ");
+					mvprintw(2, 50, "                                                                          ");
 					attroff(COLOR_PAIR(2));
 				}
 			}
@@ -2872,12 +3207,15 @@ void shot_with_wand(floor_info* floor, location* place, achievement_info* achiev
 			if(output < 0) {         //Hit to an enemy
 				output += 20;  //index
 				attron(COLOR_PAIR(1));
-				floor->enemy[output].health -= 15;   //its damage
+				floor->enemy[output].health -= power;   //its damage
 				name = tell_name_enemy(floor->enemy[output].name);
 				mvprintw(1, 50, "You hit %s with Dagger \u2020 ", name);
 				mvprintw(2, 50, "%s life_remain is  %d", name, floor->enemy[output].health > 0 ? floor->enemy[output].health : 0);
 				achievement->weapon.wand_amount -= 1;
 				getch();
+				mvprintw(1, 50, "                                                    ");
+				mvprintw(2, 50, "                                                    ");
+				if(floor->enemy[output].health <= 0) score_kill_enemy(achievement, floor->enemy[output].name, 1);
 				attroff(COLOR_PAIR(1));				
 			}
 			else {
@@ -2890,6 +3228,17 @@ void shot_with_wand(floor_info* floor, location* place, achievement_info* achiev
 					mvprintw(2, 50, "You can pick_up your thrown weapon from the floor!");
 					achievement->weapon.wand_amount -= 1;
 					getch();
+					mvprintw(1, 50, "                                                    ");
+					mvprintw(2, 50, "                                                    ");
+					attroff(COLOR_PAIR(2));
+				}
+				else {
+					attron(COLOR_PAIR(2));
+					mvprintw(1, 50, "You didn't hit anyone!");
+					mvprintw(2, 50, "Weapons can't fall down in corridors! Your weapon amount didn't decreased!");
+					getch();
+					mvprintw(1, 50, "                                                    ");
+					mvprintw(2, 50, "                                                                          ");
 					attroff(COLOR_PAIR(2));
 				}
 			}
@@ -2899,12 +3248,15 @@ void shot_with_wand(floor_info* floor, location* place, achievement_info* achiev
 			if(output < 0) {         //Hit to an enemy
 				output += 20;  //index
 				attron(COLOR_PAIR(1));
-				floor->enemy[output].health -= 15;   //its damage
+				floor->enemy[output].health -= power;   //its damage
 				name = tell_name_enemy(floor->enemy[output].name);
 				mvprintw(1, 50, "You hit %s with Dagger \u2020 ", name);
 				mvprintw(2, 50, "%s life_remain is  %d", name, floor->enemy[output].health > 0 ? floor->enemy[output].health : 0);
 				achievement->weapon.wand_amount -= 1;
 				getch();
+				mvprintw(1, 50, "                                                    ");
+				mvprintw(2, 50, "                                                    ");
+				if(floor->enemy[output].health <= 0) score_kill_enemy(achievement, floor->enemy[output].name, 1);
 				attroff(COLOR_PAIR(1));				
 			}
 			else {
@@ -2917,6 +3269,17 @@ void shot_with_wand(floor_info* floor, location* place, achievement_info* achiev
 					mvprintw(2, 50, "You can pick_up your thrown weapon from the floor!");
 					achievement->weapon.wand_amount -= 1;
 					getch();
+					mvprintw(1, 50, "                                                    ");
+					mvprintw(2, 50, "                                                    ");
+					attroff(COLOR_PAIR(2));
+				}
+				else {
+					attron(COLOR_PAIR(2));
+					mvprintw(1, 50, "You didn't hit anyone!");
+					mvprintw(2, 50, "Weapons can't fall down in corridors! Your weapon amount didn't decreased!");
+					getch();
+					mvprintw(1, 50, "                                                    ");
+					mvprintw(2, 50, "                                                                          ");
 					attroff(COLOR_PAIR(2));
 				}
 			}
@@ -2926,12 +3289,15 @@ void shot_with_wand(floor_info* floor, location* place, achievement_info* achiev
 			if(output < 0) {         //Hit to an enemy
 				output += 20;  //index
 				attron(COLOR_PAIR(1));
-				floor->enemy[output].health -= 15;   //its damage
+				floor->enemy[output].health -= power;   //its damage
 				name = tell_name_enemy(floor->enemy[output].name);
 				mvprintw(1, 50, "You hit %s with Dagger \u2020 ", name);
 				mvprintw(2, 50, "%s life_remain is  %d", name, floor->enemy[output].health > 0 ? floor->enemy[output].health : 0);
 				achievement->weapon.wand_amount -= 1;
 				getch();
+				mvprintw(1, 50, "                                                    ");
+				mvprintw(2, 50, "                                                    ");
+				if(floor->enemy[output].health <= 0) score_kill_enemy(achievement, floor->enemy[output].name, 1);
 				attroff(COLOR_PAIR(1));				
 			}
 			else {
@@ -2944,6 +3310,17 @@ void shot_with_wand(floor_info* floor, location* place, achievement_info* achiev
 					mvprintw(2, 50, "You can pick_up your thrown weapon from the floor!");
 					achievement->weapon.wand_amount -= 1;
 					getch();
+					mvprintw(1, 50, "                                                    ");
+					mvprintw(2, 50, "                                                    ");
+					attroff(COLOR_PAIR(2));
+				}
+				else {
+					attron(COLOR_PAIR(2));
+					mvprintw(1, 50, "You didn't hit anyone!");
+					mvprintw(2, 50, "Weapons can't fall down in corridors! Your weapon amount didn't decreased!");
+					getch();
+					mvprintw(1, 50, "                                                    ");
+					mvprintw(2, 50, "                                                                          ");
 					attroff(COLOR_PAIR(2));
 				}
 			}
@@ -2956,7 +3333,7 @@ void shot_with_wand(floor_info* floor, location* place, achievement_info* achiev
 			return;
 	}
 }
-void shot_with_arrow(floor_info* floor, location* place, achievement_info* achievement) {
+void shot_with_arrow(floor_info* floor, location* place, achievement_info* achievement, int power) {
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
 	init_pair(2, COLOR_RED, COLOR_BLACK);
 	if(achievement->weapon.arrow_amount == 0) {
@@ -2980,12 +3357,15 @@ void shot_with_arrow(floor_info* floor, location* place, achievement_info* achie
 			if(output < 0) {         //Hit to an enemy
 				output += 20;  //index
 				attron(COLOR_PAIR(1));
-				floor->enemy[output].health -= 5;   //its damage
+				floor->enemy[output].health -= power;   //its damage
 				name = tell_name_enemy(floor->enemy[output].name);
 				mvprintw(1, 50, "You hit %s with Normal Arrow \u27B3 ", name);
 				mvprintw(2, 50, "%s life_remain is  %d", name, floor->enemy[output].health > 0 ? floor->enemy[output].health : 0);
 				achievement->weapon.arrow_amount -= 1;
 				getch();
+				mvprintw(1, 50, "                                                    ");
+				mvprintw(2, 50, "                                                    ");
+				if(floor->enemy[output].health <= 0) score_kill_enemy(achievement, floor->enemy[output].name, 1);
 				attroff(COLOR_PAIR(1));				
 			}
 			else {
@@ -2998,6 +3378,17 @@ void shot_with_arrow(floor_info* floor, location* place, achievement_info* achie
 					mvprintw(2, 50, "You can pick_up your thrown weapon from the floor!");
 					achievement->weapon.arrow_amount -= 1;
 					getch();
+					mvprintw(1, 50, "                                                    ");
+					mvprintw(2, 50, "                                                    ");
+					attroff(COLOR_PAIR(2));
+				}
+				else {
+					attron(COLOR_PAIR(2));
+					mvprintw(1, 50, "You didn't hit anyone!");
+					mvprintw(2, 50, "Weapons can't fall down in corridors! Your weapon amount didn't decreased!");
+					getch();
+					mvprintw(1, 50, "                                                    ");
+					mvprintw(2, 50, "                                                                          ");
 					attroff(COLOR_PAIR(2));
 				}
 			}
@@ -3007,12 +3398,15 @@ void shot_with_arrow(floor_info* floor, location* place, achievement_info* achie
 			if(output < 0) {         //Hit to an enemy
 				output += 20;  //index
 				attron(COLOR_PAIR(1));
-				floor->enemy[output].health -= 5;   //its damage
+				floor->enemy[output].health -= power;   //its damage
 				name = tell_name_enemy(floor->enemy[output].name);
 				mvprintw(1, 50, "You hit %s with Normal Arrow \u27B3 ", name);
 				mvprintw(2, 50, "%s life_remain is  %d", name, floor->enemy[output].health > 0 ? floor->enemy[output].health : 0);
 				achievement->weapon.arrow_amount -= 1;
 				getch();
+				mvprintw(1, 50, "                                                    ");
+				mvprintw(2, 50, "                                                    ");
+				if(floor->enemy[output].health <= 0) score_kill_enemy(achievement, floor->enemy[output].name, 1);
 				attroff(COLOR_PAIR(1));				
 			}
 			else {
@@ -3025,6 +3419,17 @@ void shot_with_arrow(floor_info* floor, location* place, achievement_info* achie
 					mvprintw(2, 50, "You can pick_up your thrown weapon from the floor!");
 					achievement->weapon.arrow_amount -= 1;
 					getch();
+					mvprintw(1, 50, "                                                    ");
+					mvprintw(2, 50, "                                                    ");
+					attroff(COLOR_PAIR(2));
+				}
+				else {
+					attron(COLOR_PAIR(2));
+					mvprintw(1, 50, "You didn't hit anyone!");
+					mvprintw(2, 50, "Weapons can't fall down in corridors! Your weapon amount didn't decreased!");
+					getch();
+					mvprintw(1, 50, "                                                    ");
+					mvprintw(2, 50, "                                                                          ");
 					attroff(COLOR_PAIR(2));
 				}
 			}
@@ -3034,12 +3439,15 @@ void shot_with_arrow(floor_info* floor, location* place, achievement_info* achie
 			if(output < 0) {         //Hit to an enemy
 				output += 20;  //index
 				attron(COLOR_PAIR(1));
-				floor->enemy[output].health -= 5;   //its damage
+				floor->enemy[output].health -= power;   //its damage
 				name = tell_name_enemy(floor->enemy[output].name);
 				mvprintw(1, 50, "You hit %s with Normal Arrow \u27B3 ", name);
 				mvprintw(2, 50, "%s life_remain is  %d", name, floor->enemy[output].health > 0 ? floor->enemy[output].health : 0);
 				achievement->weapon.arrow_amount -= 1;
 				getch();
+				mvprintw(1, 50, "                                                    ");
+				mvprintw(2, 50, "                                                    ");
+				if(floor->enemy[output].health <= 0) score_kill_enemy(achievement, floor->enemy[output].name, 1);
 				attroff(COLOR_PAIR(1));				
 			}
 			else {
@@ -3052,6 +3460,17 @@ void shot_with_arrow(floor_info* floor, location* place, achievement_info* achie
 					mvprintw(2, 50, "You can pick_up your thrown weapon from the floor!");
 					achievement->weapon.arrow_amount -= 1;
 					getch();
+					mvprintw(1, 50, "                                                    ");
+					mvprintw(2, 50, "                                                    ");
+					attroff(COLOR_PAIR(2));
+				}
+				else {
+					attron(COLOR_PAIR(2));
+					mvprintw(1, 50, "You didn't hit anyone!");
+					mvprintw(2, 50, "Weapons can't fall down in corridors! Your weapon amount didn't decreased!");
+					getch();
+					mvprintw(1, 50, "                                                    ");
+					mvprintw(2, 50, "                                                                          ");
 					attroff(COLOR_PAIR(2));
 				}
 			}
@@ -3061,12 +3480,15 @@ void shot_with_arrow(floor_info* floor, location* place, achievement_info* achie
 			if(output < 0) {         //Hit to an enemy
 				output += 20;  //index
 				attron(COLOR_PAIR(1));
-				floor->enemy[output].health -= 5;   //its damage
+				floor->enemy[output].health -= power;   //its damage
 				name = tell_name_enemy(floor->enemy[output].name);
 				mvprintw(1, 50, "You hit %s with Normal Arrow \u27B3 ", name);
 				mvprintw(2, 50, "%s life_remain is  %d", name, floor->enemy[output].health > 0 ? floor->enemy[output].health : 0);
 				achievement->weapon.arrow_amount -= 1;
 				getch();
+				mvprintw(1, 50, "                                                    ");
+				mvprintw(2, 50, "                                                    ");
+				if(floor->enemy[output].health <= 0) score_kill_enemy(achievement, floor->enemy[output].name, 1);
 				attroff(COLOR_PAIR(1));				
 			}
 			else {
@@ -3079,6 +3501,17 @@ void shot_with_arrow(floor_info* floor, location* place, achievement_info* achie
 					mvprintw(2, 50, "You can pick_up your thrown weapon from the floor!");
 					achievement->weapon.arrow_amount -= 1;
 					getch();
+					mvprintw(1, 50, "                                                    ");
+					mvprintw(2, 50, "                                                    ");
+					attroff(COLOR_PAIR(2));
+				}
+				else {
+					attron(COLOR_PAIR(2));
+					mvprintw(1, 50, "You didn't hit anyone!");
+					mvprintw(2, 50, "Weapons can't fall down in corridors! Your weapon amount didn't decreased!");
+					getch();
+					mvprintw(1, 50, "                                                    ");
+					mvprintw(2, 50, "                                                                          ");
 					attroff(COLOR_PAIR(2));
 				}
 			}
@@ -3148,20 +3581,712 @@ char* tell_name_enemy(char abbreviation) {
 			return "Undeed";
 	}
 }
+void check_active_enchant(achievement_info* achievement) {
+	init_pair(1, COLOR_GREEN, COLOR_BLACK);
+	init_pair(2, COLOR_RED, COLOR_BLACK);
+	if(achievement->enchant.distance == 10) {
+		attron(COLOR_PAIR(2));
+		mvprintw(1, 5, "Enchant became inactive!");
+		achievement->enchant.active = false;
+		achievement->enchant.distance = 0;
+		attroff(COLOR_PAIR(2));
+		getch();
+		return;
+	}
+
+	if(achievement->enchant.active == true) {
+		achievement->enchant.distance += 1;
+
+		if(achievement->enchant.current == 'h') {     //Health enchant
+			achievement->health += 2;    //2 units increase to healthy
+			if(achievement->health > 100) achievement->health = 100;
+		}
+		return;
+	}
+}
 int handle_input_key(int ch) {
 	switch (ch) {
-		case ' ':
+		case ' ':     //fight
 			return 2;
 			break;
-		case KEY_UP:    case KEY_DOWN: case KEY_RIGHT: case KEY_LEFT:
+		case KEY_UP:    case KEY_DOWN: case KEY_RIGHT: case KEY_LEFT:  //movement
 		case KEY_NPAGE: case KEY_HOME: case KEY_PPAGE: case KEY_END:
 			return 1;
 			break;
+		case 27:     //exit 
+			return 3;
 		default:
 			return 0;
 			break;
 	}
 }
+void lose_page(achievement_info* achievement) {
+	init_pair(2, COLOR_RED, COLOR_BLACK);
+	clear();
+	attron(COLOR_PAIR(2));
+	mvprintw(LINES/2    , COLS / 2 - 20, "You LOST the game \U000026a0 \U0000274c  \n");
+	mvprintw(LINES/2 + 1, COLS / 2 - 20, "Score: %d    Gold: %d \n", achievement->score, achievement->save_gold);
+	mvprintw(LINES/2 + 2, COLS / 2 - 20, "Press q to return to previous page.\n");
+	attroff(COLOR_PAIR(2));
+	while(1) {
+		int ch = getch();
+		if(ch == 'q') return;
+	}
+}
+void win_page(achievement_info* achievement) {
+	init_pair(1, COLOR_GREEN, COLOR_BLACK);
+	clear();
+	attron(COLOR_PAIR(1));
+	mvprintw(LINES/2    , COLS / 2 - 20, "You WON the game \U0001f973 \U0001f3c6  \n");
+	mvprintw(LINES/2 + 1, COLS / 2 - 20, "Score: %d    Gold: %d \n", achievement->score, achievement->save_gold);
+	mvprintw(LINES/2 + 2, COLS / 2 - 20, "Press q to return to previous page.\n");
+	attroff(COLOR_PAIR(1));
+	while(1) {
+		int ch = getch();
+		if(ch == 'q') return;
+	}
+}
+void show_help_for_game() {
+	clear();
+	init_pair(1, COLOR_GREEN, COLOR_BLACK);
+	attron(COLOR_PAIR(1));
+	mvprintw(1, 10, "g      pick_up a weapon ro enchant");
+	mvprintw(2, 10, "i      list of weapons in your bag and can change your current");
+	mvprintw(3, 10, "e      list of enchants in your bag and can activate");
+	mvprintw(4, 10, "G      show how many gold you have");
+	mvprintw(5, 10, "H      show your health_rate and hunger_bar and meals");
+	mvprintw(6, 10, ">      go to next floor (only in < cell)");
+	mvprintw(7, 10, "<      go to previous floor (only in < cell)");
+	getch();
+	attroff(COLOR_PAIR(1));
+}
+bool go_to_treasure_room(floor_info* floor, location* place, int num_floor) {
+	int current = current_room(floor, place);
+	if(current >= 0 && num_floor == 3) {   // a room in last floor
+		int a = place->x - floor->room[current].start_point.x;
+		int b = place->y - floor->room[current].start_point.y;
+		if(floor->room[current].cell[b][a] == 'X') {
+			return true;
+		}
+		return false;
+	}
+	else return false;
+}
 void open_password_door(room_info* room, int door_number) {
 	
+}
+void check_around_for_enemy_in_treasure_room(treasure_info* treasure, location* place, achievement_info* achievement) {
+	init_pair(1, COLOR_GREEN, COLOR_BLACK);
+	init_pair(2, COLOR_RED, COLOR_BLACK);
+	attron(COLOR_PAIR(2));
+	int delta_x[8] = {0,  +1, +1, +1, 0, -1, -1, -1};
+	int delta_y[8] = {-1, -1,  0, +1, +1, +1, 0, -1};
+	for(int i = 0; i < 8; i++) {
+		location temp;
+		temp.x = place->x + delta_x[i];
+		temp.y = place->y + delta_y[i];
+		for(int j = 0; j < 16; j++) {
+			if( treasure->enemy[j].health > 0 &&
+				treasure->enemy[j].place.x == temp.x && treasure->enemy[j].place.y == temp.y) {
+					switch (treasure->enemy[j].name) {
+						case 'D':             //Deamon   5
+							achievement->health -= 2;
+							mvprintw(1, 5, "Deamon hit you!");
+							mvprintw(2, 5, "Your health_rate was decreased 2 units!");
+							getch();
+							mvprintw(1, 5, "               ");
+							mvprintw(2, 5, "                                       ");
+							break;
+						case 'F':             //Fire Breathing Monster    10
+							achievement->health -= 4;
+							mvprintw(1, 5, "Fire Breathing Monster hit you!");
+							mvprintw(2, 5, "Your health_rate was decreased 4 units!");
+							getch();
+							mvprintw(1, 5, "                               ");
+							mvprintw(2, 5, "                                       ");
+							break;
+						case 'G':             //Giant        15
+							achievement->health -= 7;
+							mvprintw(1, 5, "Giant hit you!");
+							mvprintw(2, 5, "Your health_rate was decreased 7 units!");
+							getch();
+							mvprintw(1, 5, "              ");
+							mvprintw(2, 5, "                                       ");
+							break;
+						case 'S':             //Snake         20
+							achievement->health -= 12;
+							mvprintw(1, 5, "Snake hit you!");
+							mvprintw(2, 5, "Your health_rate was decreased 12 units!");
+							getch();
+							mvprintw(1, 5, "              ");
+							mvprintw(2, 5, "                                        ");
+							break;
+						case 'U':             //Undeed        30
+							achievement->health -= 20;
+							mvprintw(1, 5, "Undeed hit you!");
+							mvprintw(2, 5, "Your health_rate was decreased 20 units!");
+							getch();
+							mvprintw(1, 5, "               ");
+							mvprintw(2, 5, "                                        ");
+							break;
+					}
+				break;
+			}
+		}
+	}
+	attroff(COLOR_PAIR(2));
+}
+void fight_in_treasure_room(treasure_info* treasure, location* place, achievement_info* achievement) { 
+	if(achievement->enchant.active == true && achievement->enchant.current == 'd') {   //Damage Enchant is active
+		fight_with_active_damage_enchant_in_treasure_room(treasure, place, achievement);  //weapon power is 2 times than usual
+		return;
+	}
+	switch (achievement->weapon.current) {
+		case 'm':                 //Mace  5              //short_range
+			shot_with_mace_in_treasure_room(treasure, place, achievement, 5);
+			break;
+		case 's':                 //Sword  10
+			shot_with_sword_in_treasure_room(treasure, place, achievement, 10);
+			break;
+		case 'd':             //Dagger    12          //Thrown
+			shot_with_dagger_in_treasure_room(treasure, place, achievement, 12);
+			break;
+		case 'w':             //Magic Wand    15
+			shot_with_wand_in_treasure_room(treasure, place, achievement, 15);
+			break;
+		case 'a':             //Normal Arrow   5
+			shot_with_arrow_in_treasure_room(treasure, place, achievement, 5);
+			break;
+	}
+}
+void fight_with_active_damage_enchant_in_treasure_room(treasure_info* treasure, location* place, achievement_info* achievement) {
+	switch (achievement->weapon.current) {
+		case 'm':                 //Mace  5              //short_range
+			shot_with_mace_in_treasure_room(treasure, place, achievement, 10);
+			break;
+		case 's':                 //Sword  10
+			shot_with_sword_in_treasure_room(treasure, place, achievement, 20);
+			break;
+		case 'd':             //Dagger    12          //Thrown
+			shot_with_dagger_in_treasure_room(treasure, place, achievement, 24);
+			break;
+		case 'w':             //Magic Wand    15
+			shot_with_wand_in_treasure_room(treasure, place, achievement, 30);
+			break;
+		case 'a':             //Normal Arrow   5
+			shot_with_arrow_in_treasure_room(treasure, place, achievement, 10);
+			break;
+	}
+}
+void shot_with_mace_in_treasure_room(treasure_info* treasure, location* place, achievement_info* achievement, int power) {
+	init_pair(1, COLOR_GREEN, COLOR_BLACK);
+	init_pair(2, COLOR_RED, COLOR_BLACK);
+	attron(COLOR_PAIR(1));
+	int delta_x[8] = {0,  +1, +1, +1, 0, -1, -1, -1};
+	int delta_y[8] = {-1, -1,  0, +1, +1, +1, 0, -1};
+	for(int i = 0; i < 8; i++) {
+		location temp;
+		char* name;
+		temp.x = place->x + delta_x[i];
+		temp.y = place->y + delta_y[i];
+		for(int j = 0; j < 20; j++) {
+			if( treasure->enemy[j].health > 0 &&
+				treasure->enemy[j].place.x == temp.x && treasure->enemy[j].place.y == temp.y) {
+					name = tell_name_enemy(treasure->enemy[j].name);    //full name
+					treasure->enemy[j].health -= power;   //its damage
+					mvprintw(1, 50, "You hit %s with Mace \u2692 !", name);
+					mvprintw(2, 50, "%s life_remain is  %d", name, treasure->enemy[j].health > 0 ? treasure->enemy[j].health : 0);
+					getch();
+					mvprintw(1, 50, "                                                    ");
+					mvprintw(2, 50, "                                                    ");
+					if(treasure->enemy[j].health <= 0) score_kill_enemy(achievement, treasure->enemy[j].name, 2);
+					break;
+			}
+		}
+	}
+	attroff(COLOR_PAIR(1));
+}
+void shot_with_sword_in_treasure_room(treasure_info* treasure, location* place, achievement_info* achievement, int power) {
+	init_pair(1, COLOR_GREEN, COLOR_BLACK);
+	init_pair(2, COLOR_RED, COLOR_BLACK);
+	attron(COLOR_PAIR(1));
+	int delta_x[8] = {0,  +1, +1, +1, 0, -1, -1, -1};
+	int delta_y[8] = {-1, -1,  0, +1, +1, +1, 0, -1};
+	for(int i = 0; i < 8; i++) {
+		location temp;
+		char* name;
+		temp.x = place->x + delta_x[i];
+		temp.y = place->y + delta_y[i];
+		for(int j = 0; j < 20; j++) {
+			if( treasure->enemy[j].health > 0 &&
+				treasure->enemy[j].place.x == temp.x && treasure->enemy[j].place.y == temp.y) {
+					name = tell_name_enemy(treasure->enemy[j].name);          //full name
+					treasure->enemy[j].health -= power;     //its damage
+					mvprintw(1, 50, "You hit %s with Sword \u2694!", name);
+					mvprintw(2, 50, "%s life_remain is  %d", name, treasure->enemy[j].health > 0 ? treasure->enemy[j].health : 0);
+					getch();
+					mvprintw(1, 50, "                                                    ");
+					mvprintw(2, 50, "                                                    ");
+					if(treasure->enemy[j].health <= 0) score_kill_enemy(achievement, treasure->enemy[j].name, 2);
+					break;
+			}
+		}
+	}
+	attroff(COLOR_PAIR(1));
+}
+void shot_with_dagger_in_treasure_room(treasure_info* treasure, location* place, achievement_info* achievement, int power) {
+	init_pair(1, COLOR_GREEN, COLOR_BLACK);
+	init_pair(2, COLOR_RED, COLOR_BLACK);
+	if(achievement->weapon.dagger_amount == 0) {
+		attron(COLOR_PAIR(2));
+		mvprintw(1, 50, "You don't have any of this weapon!");
+		getch();
+		attroff(COLOR_PAIR(2));
+		return;
+	}
+	attron(COLOR_PAIR(1));
+	mvprintw(1, 50, "Enter a direction!");
+	int direction = getch();
+	attroff(COLOR_PAIR(1));
+	mvprintw(1, 50, "                  ");
+	int output;
+	char* name;
+	switch (direction) {
+		case KEY_UP:
+			output = search_path_direction_in_treasure_room(treasure, place, 'U', 5);   // 5 is distance that this weapon can go
+			if(output < 0) {         //Hit to an enemy
+				output += 20;  //index
+				attron(COLOR_PAIR(1));
+				treasure->enemy[output].health -= power;   //its damage
+				name = tell_name_enemy(treasure->enemy[output].name);
+				mvprintw(1, 50, "You hit %s with Dagger \U0001F5E1 ", name);
+				mvprintw(2, 50, "%s life_remain is  %d", name, treasure->enemy[output].health > 0 ? treasure->enemy[output].health : 0);
+				achievement->weapon.dagger_amount -= 1;
+				if(treasure->enemy[output].health <= 0) score_kill_enemy(achievement, treasure->enemy[output].name, 2);
+				getch();
+				attroff(COLOR_PAIR(1));				
+			}
+			else {
+				location temp = {place->y - output, place->x};
+				treasure->room.cell[temp.y - treasure->room.start_point.y][temp.x - treasure->room.start_point.x] = '1';
+				attron(COLOR_PAIR(2));
+				mvprintw(1, 50, "You didn't hit anyone!");
+				mvprintw(2, 50, "You can pick_up your thrown weapon from the floor!");
+				achievement->weapon.dagger_amount -= 1;
+				getch();
+				attroff(COLOR_PAIR(2));
+			}
+			break;
+		case KEY_RIGHT:
+			output = search_path_direction_in_treasure_room(treasure, place, 'R', 5);   // 5 is distance that this weapon can go
+			if(output < 0) {         //Hit to an enemy
+				output += 20;  //index
+				attron(COLOR_PAIR(1));
+				treasure->enemy[output].health -= power;   //its damage
+				name = tell_name_enemy(treasure->enemy[output].name);
+				mvprintw(1, 50, "You hit %s with Dagger \U0001F5E1 ", name);
+				mvprintw(2, 50, "%s life_remain is  %d", name, treasure->enemy[output].health > 0 ? treasure->enemy[output].health : 0);
+				achievement->weapon.dagger_amount -= 1;
+				if(treasure->enemy[output].health <= 0) score_kill_enemy(achievement, treasure->enemy[output].name, 2);
+				getch();
+				attroff(COLOR_PAIR(1));				
+			}
+			else {
+				location temp = {place->y, place->x + output};
+				treasure->room.cell[temp.y - treasure->room.start_point.y][temp.x - treasure->room.start_point.x] = '1';
+				attron(COLOR_PAIR(2));
+				mvprintw(1, 50, "You didn't hit anyone!");
+				mvprintw(2, 50, "You can pick_up your thrown weapon from the floor!");
+				achievement->weapon.dagger_amount -= 1;
+				getch();
+				attroff(COLOR_PAIR(2));
+			}
+			break;
+		case KEY_DOWN:
+			output = search_path_direction_in_treasure_room(treasure, place, 'D', 5);   // 5 is distance that this weapon can go
+			if(output < 0) {         //Hit to an enemy
+				output += 20;  //index
+				attron(COLOR_PAIR(1));
+				treasure->enemy[output].health -= power;   //its damage
+				name = tell_name_enemy(treasure->enemy[output].name);
+				mvprintw(1, 50, "You hit %s with Dagger \U0001F5E1 ", name);
+				mvprintw(2, 50, "%s life_remain is  %d", name, treasure->enemy[output].health > 0 ? treasure->enemy[output].health : 0);
+				achievement->weapon.dagger_amount -= 1;
+				if(treasure->enemy[output].health <= 0) score_kill_enemy(achievement, treasure->enemy[output].name, 2);
+				getch();
+				attroff(COLOR_PAIR(1));				
+			}
+			else {
+				location temp = {place->y + output, place->x};
+				treasure->room.cell[temp.y - treasure->room.start_point.y][temp.x - treasure->room.start_point.x] = '1';
+				attron(COLOR_PAIR(2));
+				mvprintw(1, 50, "You didn't hit anyone!");
+				mvprintw(2, 50, "You can pick_up your thrown weapon from the floor!");
+				achievement->weapon.dagger_amount -= 1;
+				getch();
+				attroff(COLOR_PAIR(2));
+			}
+			break;
+		case KEY_LEFT:
+			output = search_path_direction_in_treasure_room(treasure, place, 'L', 5);   // 5 is distance that this weapon can go
+			if(output < 0) {         //Hit to an enemy
+				output += 20;  //index
+				attron(COLOR_PAIR(1));
+				treasure->enemy[output].health -= power;   //its damage
+				name = tell_name_enemy(treasure->enemy[output].name);
+				mvprintw(1, 50, "You hit %s with Dagger \U0001F5E1 ", name);
+				mvprintw(2, 50, "%s life_remain is  %d", name, treasure->enemy[output].health > 0 ? treasure->enemy[output].health : 0);
+				achievement->weapon.dagger_amount -= 1;
+				if(treasure->enemy[output].health <= 0) score_kill_enemy(achievement, treasure->enemy[output].name, 2);
+				getch();
+				attroff(COLOR_PAIR(1));				
+			}
+			else {
+				location temp = {place->y, place->x - output};
+				treasure->room.cell[temp.y - treasure->room.start_point.y][temp.x - treasure->room.start_point.x] = '1';
+				attron(COLOR_PAIR(2));
+				mvprintw(1, 50, "You didn't hit anyone!");
+				mvprintw(2, 50, "You can pick_up your thrown weapon from the floor!");
+				achievement->weapon.dagger_amount -= 1;
+				getch();
+				attroff(COLOR_PAIR(2));
+			}
+			break;		
+		default:
+			attron(COLOR_PAIR(2));
+			mvprintw(1, 50, "Wrong direction!");
+			getch();
+			attroff(COLOR_PAIR(2));
+			return;
+	}
+}
+void shot_with_wand_in_treasure_room(treasure_info* treasure, location* place, achievement_info* achievement, int power) {
+	init_pair(1, COLOR_GREEN, COLOR_BLACK);
+	init_pair(2, COLOR_RED, COLOR_BLACK);
+	if(achievement->weapon.wand_amount == 0) {
+		attron(COLOR_PAIR(2));
+		mvprintw(1, 50, "You don't have any of this weapon!");
+		getch();
+		attroff(COLOR_PAIR(2));
+		return;
+	}
+	attron(COLOR_PAIR(1));
+	mvprintw(1, 50, "Enter a direction!");
+	int direction = getch();
+	attroff(COLOR_PAIR(1));
+	mvprintw(1, 50, "                  ");
+	int output;
+	char* name;
+	switch (direction) {
+		case KEY_UP:
+			output = search_path_direction_in_treasure_room(treasure, place, 'U', 10);   // 10 is distance that this weapon can go
+			if(output < 0) {         //Hit to an enemy
+				output += 20;  //index
+				attron(COLOR_PAIR(1));
+				treasure->enemy[output].health -= power;   //its damage
+				name = tell_name_enemy(treasure->enemy[output].name);
+				mvprintw(1, 50, "You hit %s with Magic Wand \u2020 ", name);
+				mvprintw(2, 50, "%s life_remain is  %d", name, treasure->enemy[output].health > 0 ? treasure->enemy[output].health : 0);
+				achievement->weapon.wand_amount -= 1;
+				if(treasure->enemy[output].health <= 0) score_kill_enemy(achievement, treasure->enemy[output].name, 2);
+				getch();
+				attroff(COLOR_PAIR(1));				
+			}
+			else {
+				location temp = {place->y - output, place->x};
+				treasure->room.cell[temp.y - treasure->room.start_point.y][temp.x - treasure->room.start_point.x] = '2';
+				attron(COLOR_PAIR(2));
+				mvprintw(1, 50, "You didn't hit anyone!");
+				mvprintw(2, 50, "You can pick_up your thrown weapon from the floor!");
+				achievement->weapon.wand_amount -= 1;
+				getch();
+				attroff(COLOR_PAIR(2));
+			}
+			break;
+		case KEY_RIGHT:
+			output = search_path_direction_in_treasure_room(treasure, place, 'R', 10);   // 10 is distance that this weapon can go
+			if(output < 0) {         //Hit to an enemy
+				output += 20;  //index
+				attron(COLOR_PAIR(1));
+				treasure->enemy[output].health -= power;   //its damage
+				name = tell_name_enemy(treasure->enemy[output].name);
+				mvprintw(1, 50, "You hit %s with Dagger \u2020 ", name);
+				mvprintw(2, 50, "%s life_remain is  %d", name, treasure->enemy[output].health > 0 ? treasure->enemy[output].health : 0);
+				achievement->weapon.wand_amount -= 1;
+				if(treasure->enemy[output].health <= 0) score_kill_enemy(achievement, treasure->enemy[output].name, 2);
+				getch();
+				attroff(COLOR_PAIR(1));				
+			}
+			else {
+				location temp = {place->y, place->x + output};
+				treasure->room.cell[temp.y - treasure->room.start_point.y][temp.x - treasure->room.start_point.x] = '2';
+				attron(COLOR_PAIR(2));
+				mvprintw(1, 50, "You didn't hit anyone!");
+				mvprintw(2, 50, "You can pick_up your thrown weapon from the floor!");
+				achievement->weapon.wand_amount -= 1;
+				getch();
+				attroff(COLOR_PAIR(2));
+			}
+			break;
+		case KEY_DOWN:
+			output = search_path_direction_in_treasure_room(treasure, place, 'D', 10);   // 10 is distance that this weapon can go
+			if(output < 0) {         //Hit to an enemy
+				output += 20;  //index
+				attron(COLOR_PAIR(1));
+				treasure->enemy[output].health -= power;   //its damage
+				name = tell_name_enemy(treasure->enemy[output].name);
+				mvprintw(1, 50, "You hit %s with Dagger \u2020 ", name);
+				mvprintw(2, 50, "%s life_remain is  %d", name, treasure->enemy[output].health > 0 ? treasure->enemy[output].health : 0);
+				achievement->weapon.wand_amount -= 1;
+				if(treasure->enemy[output].health <= 0) score_kill_enemy(achievement, treasure->enemy[output].name, 2);
+				getch();
+				attroff(COLOR_PAIR(1));				
+			}
+			else {
+				location temp = {place->y + output, place->x};
+				treasure->room.cell[temp.y - treasure->room.start_point.y][temp.x - treasure->room.start_point.x] = '2';
+				attron(COLOR_PAIR(2));
+				mvprintw(1, 50, "You didn't hit anyone!");
+				mvprintw(2, 50, "You can pick_up your thrown weapon from the floor!");
+				achievement->weapon.wand_amount -= 1;
+				getch();
+				attroff(COLOR_PAIR(2));
+			}
+			break;
+		case KEY_LEFT:
+			output = search_path_direction_in_treasure_room(treasure, place, 'L', 10);   // 10 is distance that this weapon can go
+			if(output < 0) {         //Hit to an enemy
+				output += 20;  //index
+				attron(COLOR_PAIR(1));
+				treasure->enemy[output].health -= power;   //its damage
+				name = tell_name_enemy(treasure->enemy[output].name);
+				mvprintw(1, 50, "You hit %s with Dagger \u2020 ", name);
+				mvprintw(2, 50, "%s life_remain is  %d", name, treasure->enemy[output].health > 0 ? treasure->enemy[output].health : 0);
+				achievement->weapon.wand_amount -= 1;
+				if(treasure->enemy[output].health <= 0) score_kill_enemy(achievement, treasure->enemy[output].name, 2);
+				getch();
+				attroff(COLOR_PAIR(1));				
+			}
+			else {
+				location temp = {place->y, place->x - output};
+				treasure->room.cell[temp.y - treasure->room.start_point.y][temp.x - treasure->room.start_point.x] = '2';
+				attron(COLOR_PAIR(2));
+				mvprintw(1, 50, "You didn't hit anyone!");
+				mvprintw(2, 50, "You can pick_up your thrown weapon from the floor!");
+				achievement->weapon.wand_amount -= 1;
+				getch();
+				attroff(COLOR_PAIR(2));
+			}
+			break;		
+		default:
+			attron(COLOR_PAIR(2));
+			mvprintw(1, 50, "Wrong direction!");
+			getch();
+			attroff(COLOR_PAIR(2));
+			return;
+	}
+}
+void shot_with_arrow_in_treasure_room(treasure_info* treasure, location* place, achievement_info* achievement, int power) {
+	init_pair(1, COLOR_GREEN, COLOR_BLACK);
+	init_pair(2, COLOR_RED, COLOR_BLACK);
+	if(achievement->weapon.arrow_amount == 0) {
+		attron(COLOR_PAIR(2));
+		mvprintw(1, 50, "You don't have any of this weapon!");
+		getch();
+		attroff(COLOR_PAIR(2));
+		return;
+	}
+	attron(COLOR_PAIR(1));
+	mvprintw(1, 50, "Enter a direction!");
+	int direction = getch();
+	attroff(COLOR_PAIR(1));
+	mvprintw(1, 50, "                  ");
+	int output;
+	char* name;
+	switch (direction) {
+		case KEY_UP:
+			output = search_path_direction_in_treasure_room(treasure, place, 'U', 5);   // 5 is distance that this weapon can go
+			if(output < 0) {         //Hit to an enemy
+				output += 20;  //index
+				attron(COLOR_PAIR(1));
+				treasure->enemy[output].health -= power;   //its damage
+				name = tell_name_enemy(treasure->enemy[output].name);
+				mvprintw(1, 50, "You hit %s with Normal Arrow \u27B3 ", name);
+				mvprintw(2, 50, "%s life_remain is  %d", name, treasure->enemy[output].health > 0 ? treasure->enemy[output].health : 0);
+				achievement->weapon.arrow_amount -= 1;
+				if(treasure->enemy[output].health <= 0) score_kill_enemy(achievement, treasure->enemy[output].name, 2);
+				getch();
+				attroff(COLOR_PAIR(1));				
+			}
+			else {
+				location temp = {place->y - output, place->x};
+				treasure->room.cell[temp.y - treasure->room.start_point.y][temp.x - treasure->room.start_point.x] = '3';
+				attron(COLOR_PAIR(2));
+				mvprintw(1, 50, "You didn't hit anyone!");
+				mvprintw(2, 50, "You can pick_up your thrown weapon from the floor!");
+				achievement->weapon.arrow_amount -= 1;
+				getch();
+				attroff(COLOR_PAIR(2));
+			}
+			break;
+		case KEY_RIGHT:
+			output = search_path_direction_in_treasure_room(treasure, place, 'R', 5);   // 5 is distance that this weapon can go
+			if(output < 0) {         //Hit to an enemy
+				output += 20;  //index
+				attron(COLOR_PAIR(1));
+				treasure->enemy[output].health -= power;   //its damage
+				name = tell_name_enemy(treasure->enemy[output].name);
+				mvprintw(1, 50, "You hit %s with Normal Arrow \u27B3 ", name);
+				mvprintw(2, 50, "%s life_remain is  %d", name, treasure->enemy[output].health > 0 ? treasure->enemy[output].health : 0);
+				achievement->weapon.arrow_amount -= 1;
+				if(treasure->enemy[output].health <= 0) score_kill_enemy(achievement, treasure->enemy[output].name, 2);
+				getch();
+				attroff(COLOR_PAIR(1));				
+			}
+			else {
+				location temp = {place->y, place->x + output};
+				treasure->room.cell[temp.y - treasure->room.start_point.y][temp.x - treasure->room.start_point.x] = '3';
+				attron(COLOR_PAIR(2));
+				mvprintw(1, 50, "You didn't hit anyone!");
+				mvprintw(2, 50, "You can pick_up your thrown weapon from the floor!");
+				achievement->weapon.arrow_amount -= 1;
+				getch();
+				attroff(COLOR_PAIR(2));
+			}
+			break;
+		case KEY_DOWN:
+			output = search_path_direction_in_treasure_room(treasure, place, 'D', 5);   // 5 is distance that this weapon can go
+			if(output < 0) {         //Hit to an enemy
+				output += 20;  //index
+				attron(COLOR_PAIR(1));
+				treasure->enemy[output].health -= power;   //its damage
+				name = tell_name_enemy(treasure->enemy[output].name);
+				mvprintw(1, 50, "You hit %s with Normal Arrow \u27B3 ", name);
+				mvprintw(2, 50, "%s life_remain is  %d", name, treasure->enemy[output].health > 0 ? treasure->enemy[output].health : 0);
+				achievement->weapon.arrow_amount -= 1;
+				if(treasure->enemy[output].health <= 0) score_kill_enemy(achievement, treasure->enemy[output].name, 2);
+				getch();
+				attroff(COLOR_PAIR(1));				
+			}
+			else {
+				location temp = {place->y + output, place->x};
+				treasure->room.cell[temp.y - treasure->room.start_point.y][temp.x - treasure->room.start_point.x] = '3';
+				attron(COLOR_PAIR(2));
+				mvprintw(1, 50, "You didn't hit anyone!");
+				mvprintw(2, 50, "You can pick_up your thrown weapon from the floor!");
+				achievement->weapon.arrow_amount -= 1;
+				getch();
+				attroff(COLOR_PAIR(2));
+			}
+			break;
+		case KEY_LEFT:
+			output = search_path_direction_in_treasure_room(treasure, place, 'L', 5);   // 5 is distance that this weapon can go
+			if(output < 0) {         //Hit to an enemy
+				output += 20;  //index
+				attron(COLOR_PAIR(1));
+				treasure->enemy[output].health -= power;   //its damage
+				name = tell_name_enemy(treasure->enemy[output].name);
+				mvprintw(1, 50, "You hit %s with Normal Arrow \u27B3 ", name);
+				mvprintw(2, 50, "%s life_remain is  %d", name, treasure->enemy[output].health > 0 ? treasure->enemy[output].health : 0);
+				achievement->weapon.arrow_amount -= 1;
+				if(treasure->enemy[output].health <= 0) score_kill_enemy(achievement, treasure->enemy[output].name, 2);
+				getch();
+				attroff(COLOR_PAIR(1));				
+			}
+			else {
+				location temp = {place->y, place->x - output};
+				treasure->room.cell[temp.y - treasure->room.start_point.y][temp.x - treasure->room.start_point.x] = '3';
+				attron(COLOR_PAIR(2));
+				mvprintw(1, 50, "You didn't hit anyone!");
+				mvprintw(2, 50, "You can pick_up your thrown weapon from the floor!");
+				achievement->weapon.arrow_amount -= 1;
+				getch();
+				attroff(COLOR_PAIR(2));
+			}
+			break;		
+		default:
+			attron(COLOR_PAIR(2));
+			mvprintw(1, 50, "Wrong direction!");
+			getch();
+			attroff(COLOR_PAIR(2));
+			return;
+	}
+}
+int search_path_direction_in_treasure_room(treasure_info* treasure, location* place, int direction, int len) {
+	// output -n --->  hit to enemy(+20)        output n --->  fell down after n
+	location temp;
+	int a;
+	switch (direction) {
+		case 'U':                   //UP
+			for(int i = 1; i <= len; i++) {
+				temp.x = place->x;
+				temp.y = place->y - i;
+				if((a = check_location_as_be_enemy_with_index_in_treasure_room(treasure, &temp)) != 0) return a;   //Hit to an enemy
+				if(check_location_in_treasure_room(treasure, &temp) == false ) return i-1;                //Go out 
+			}
+			return len;
+			break;
+		case 'R':                   //RIGHT
+			for(int i = 1; i <= len; i++) {
+				temp.x = place->x + i;
+				temp.y = place->y;
+				if((a = check_location_as_be_enemy_with_index_in_treasure_room(treasure, &temp)) != 0) return a;   //Hit to an enemy
+				if(check_location_in_treasure_room(treasure, &temp) == false ) return i-1;                //Go out 
+			}
+			return len;
+			break;
+		case 'D':                   //DOWN
+			for(int i = 1; i <= len; i++) {
+				temp.x = place->x;
+				temp.y = place->y + i;
+				if((a = check_location_as_be_enemy_with_index_in_treasure_room(treasure, &temp)) != 0) return a;   //Hit to an enemy
+				if(check_location_in_treasure_room(treasure, &temp) == false ) return i-1;                //Go out 
+			}
+			return len;
+			break;
+		case 'L':                   //LEFT
+			for(int i = 1; i <= len; i++) {
+				temp.x = place->x - i;
+				temp.y = place->y;
+				if((a = check_location_as_be_enemy_with_index_in_treasure_room(treasure, &temp)) != 0) return a;   //Hit to an enemy
+				if(check_location_in_treasure_room(treasure, &temp) == false ) return i-1;                //Go out 
+			}
+			return len;
+			break;
+	}
+}
+
+bool exit_the_game() {
+	init_pair(2, COLOR_RED, COLOR_BLACK);
+	clear();
+	attron(COLOR_PAIR(2));
+	mvprintw(LINES/2,     COLS / 2 - 20, "Do you want to exit the game?\n");
+	mvprintw(LINES/2 + 1, COLS / 2 - 20, "Press y/n to end/continue the game.\n");
+	attroff(COLOR_PAIR(2));
+	while(1) {
+		int ch = getch();
+		if(ch == 'y' || ch == 'Y') 
+			return true;
+		if(ch == 'n' || ch == 'N')
+			return false;
+	}
+}
+void score_kill_enemy(achievement_info* achievement, char name, int n) {
+	switch (name) {
+		case 'D':        //Deamon
+			achievement->score += 20*n;
+			break;
+		case 'F':        //Fire Breathing Monster
+			achievement->score += 40*n;
+			break;
+		case 'G':        //Giant
+			achievement->score += 60*n;
+			break;
+		case 'S':        //Snake 
+			achievement->score += 80*n;
+			break;
+		case 'U':        //Undeed
+			achievement->score += 120*n;
+			break;
+	}
 }
