@@ -28,7 +28,7 @@ typedef struct {
 typedef struct {
 	char username[SIZE_USERNAME];
 	int total_score;
-	int game_score;
+//	int game_score;
 	int gold;
 	int number_game;
 	time_t start_time;
@@ -135,6 +135,7 @@ void generate_room(room_info* a_room, int number);
 bool check_value(room_info* room, int y, int x, char value);
 char door_symbol(room_info* room, int n, int side);
 void new_game();
+void resume_game();
 void start_location_random(location* start, room_info* room);
 void print_map_conditionally(floor_info* floor, location* place);
 void print_all_map(floor_info* floor);
@@ -186,7 +187,9 @@ char* tell_name_enemy(char abbreviation);
 void check_active_enchant(achievement_info* achievement);
 void lose_page(achievement_info* achievement);
 void win_page(achievement_info* achievement);
-bool exit_the_game();
+bool exit_the_game(achievement_info* achievement);
+bool win_the_game(treasure_info* treasure, location* place);
+bool lose_the_game(achievement_info* achievement);
 void show_help_for_game();
 int handle_input_key(int ch);
 void set_to_zero(achievement_info*);
@@ -202,6 +205,8 @@ void shot_with_wand_in_treasure_room(treasure_info* treasure, location* place, a
 void shot_with_arrow_in_treasure_room(treasure_info* treasure, location* place, achievement_info* achievement, int power);
 int search_path_direction_in_treasure_room(treasure_info* treasure, location* place, int direction, int len);
 void score_kill_enemy(achievement_info* achievement, char name, int n);
+void score_for_gold(achievement_info* achievement);
+void score_for_win_treasure_room(achievement_info* achievement);
 
 
 
@@ -671,7 +676,7 @@ int get_and_check_username_and_pass_for_login() {
 	if (fileptr == NULL) {
 		mvprintw(22, (COLS - 70) / 4, "***No user has been registered !!!!!!!\n");
 		getch();
-		fclose(fileptr);
+		//fclose(fileptr);
 		return 0;
 	}
 
@@ -829,7 +834,7 @@ void page_score_table() {
 	mvprintw(8, COLS / 6, "%-10s%-30s%-17s%-10s%-20s%-15s", "Rank", "Username", "Total score", "Gold", "Number of game", "Experience");
 	attroff(COLOR_PAIR(2));
 
-	for(int i = 0; i < 5; i++) {
+	for(int i = 0; i < num_read; i++) {
 		if (is_login == 1 && strcmp(list[i].username, logged_in_user.username) == 0) mvprintw(10 + i, COLS / 6 - 8, "----->");
 		if (i == 0 || i == 1 || i == 2) { 
 			attron(COLOR_PAIR(1) | A_ITALIC | A_BOLD); mvprintw(10 + i, COLS / 6 + 103, "<Legend> "); printw("\U0001f3c6");}
@@ -883,13 +888,25 @@ void pre_game_menu() {
 						new_game();
 					}
 					else {
-						mvprintw(LINES/2,     COLS / 2 - 20, "You haven't LOGIN the game!\n");
-						mvprintw(LINES/2 + 1, COLS / 2 - 20, "Return to previous page and login.\n");
+						mvprintw(LINES/2,     COLS / 2 - 20, "           You haven't LOGIN the game!\n");
+						mvprintw(LINES/2 + 1, COLS / 2 - 20, "Press any key to Return to previous page and login.\n");
 						getch();
+						return;
 					}
 					break;
 				case 1:     //"Resume Game"
-					//
+					if(is_login == 1) {
+						mvprintw(LINES/2,     COLS / 2 - 20, "    Loading your last game...\n");
+						mvprintw(LINES/2 + 1, COLS / 2 - 20, "    Press any key to start...\n");
+						getch();
+						resume_game();
+					}
+					else {
+						mvprintw(LINES/2,     COLS / 2 - 20, "         You haven't LOGIN the game!\n");
+						mvprintw(LINES/2 + 1, COLS / 2 - 20, "Press any key to Return to previous page and login.\n");
+						getch();
+						return;
+					}
 					break;
 				case 2:     //"Setting"
 					setting_for_game();
@@ -996,6 +1013,29 @@ void new_game() {
 	init_pair(4, COLOR_YELLOW, COLOR_WHITE);
 	init_pair(5, COLOR_BLUE, COLOR_BLACK);
 
+	FILE* fileptr = fopen("score.dat", "rb+");
+	game_user_info temp;
+	int find = 0;
+	if(fileptr == NULL) fileptr = fopen("score.dat", "wb");
+	if(fileptr != NULL && is_login == 1) {
+		while(!feof(fileptr)) {
+			fread(&temp, sizeof(game_user_info), 1, fileptr);
+			if(strcmp(logged_in_user.username, temp.username) == 0) {
+				fseek(fileptr, -sizeof(game_user_info), SEEK_CUR);
+				find = 1;
+				break;
+			}
+		}
+	}
+	if(is_login == 1 && find == 0) {    //the user wasn't in the list
+		fseek(fileptr, 0, SEEK_END);
+		strcpy(temp.username, logged_in_user.username);  //write down the username for the user
+		temp.start_time = time(NULL);   //write down the current time as the first game for the player
+		temp.gold = 0;
+		temp.number_game = 0;
+		temp.total_score = 0;
+	}
+	
 
 	achievement_info achievement;
 	floor_info floor[4];
@@ -1026,14 +1066,23 @@ void new_game() {
 		print_enemy_conditionally(floor+g);     //enemies
 		check_around_for_enemy(floor+g, &position, &achievement);
 
-		if(achievement.health <= 0 || achievement.hunger_bar <= 0) {     //check for being alive 
+		if(lose_the_game(&achievement) == true) {     //check for being alive 
+			score_for_gold(&achievement);
 			lose_page(&achievement);
+			if(is_login == 1) {
+				temp.number_game += 1;
+				temp.gold += achievement.save_gold;
+				temp.total_score += achievement.score;
+				fwrite(&temp, sizeof(game_user_info), 1, fileptr);  //save in file
+			}
+			fclose(fileptr);
 			return;
 		}
 
 		if(go_to_treasure_room(floor+g, &position, g) == true) {
 			start_location_random(&position, &treasure.room);
 			transfer_snake_to_treasure_room(floor+g, &treasure);
+			g = 10;      //sign for being in treasure room
 			break;
 		}
 
@@ -1058,9 +1107,19 @@ void new_game() {
 				check_active_enchant(&achievement);
 				check_hunger_bar(&achievement);
 				break;
-			case 3:     //exit     (Esc)
-				if(exit_the_game() == true)
+			case 3:     //Stop and exit     (Esc)
+				if(exit_the_game(&achievement) == true) {
+					fclose(fileptr);
+					if(is_login == 1) {   //saving the game
+						FILE* path = fopen(logged_in_user.username, "wb");
+						fwrite(floor, sizeof(floor_info), 4, path);              //save 4 floors detail
+						fwrite(&treasure, sizeof(treasure_info), 1, path);       //save treasure room
+						fwrite(&achievement, sizeof(achievement_info), 1, path); //save the player's achievement
+						fwrite(&g, sizeof(int), 1, path);                        //save num_floor
+						fclose(path);
+					}
 					return;
+				}
 		}
 
 		if(g != temp) {       //if floor was changed
@@ -1081,8 +1140,31 @@ void new_game() {
 		check_trap_and_distance_in_treasure_room(&treasure, &position, &achievement);
 		check_around_for_enemy_in_treasure_room(&treasure, &position, &achievement);
 
-		if(achievement.health <= 0 || achievement.hunger_bar <= 0) {     //check for being alive 
+		if(lose_the_game(&achievement) == true) {     //check for being alive 
+			achievement.score += 100;           //score for lose in treasure room
+			score_for_gold(&achievement);
 			lose_page(&achievement);
+			if(is_login == 1) {
+				temp.number_game += 1;
+				temp.gold += achievement.save_gold;
+				temp.total_score += achievement.score;
+				fwrite(&temp, sizeof(game_user_info), 1, fileptr);  //save in file
+			}
+			fclose(fileptr);
+			return;
+		}
+
+		if(win_the_game(&treasure, &position) == true)  {  //win
+			score_for_win_treasure_room(&achievement);
+			score_for_gold(&achievement);
+			win_page(&achievement);
+			if(is_login == 1) {
+				temp.number_game += 1;
+				temp.gold += achievement.save_gold;
+				temp.total_score += achievement.score;
+				fwrite(&temp, sizeof(game_user_info), 1, fileptr);  //save in file
+			}
+			fclose(fileptr);
 			return;
 		}
 
@@ -1105,11 +1187,229 @@ void new_game() {
 				check_hunger_bar(&achievement);
 				break;
 			case 3:     //exit     (Esc)
-				if(exit_the_game() == true)
+				if(exit_the_game(&achievement) == true)
+					fclose(fileptr);
+					if(is_login == 1) {   //saving the game
+						FILE* path = fopen(logged_in_user.username, "wb");
+						fwrite(floor, sizeof(floor_info), 4, path);              //save 4 floors detail
+						fwrite(&treasure, sizeof(treasure_info), 1, path);       //save treasure room
+						fwrite(&achievement, sizeof(achievement_info), 1, path); //save the player's achievement
+						fwrite(&g, sizeof(int), 1, path);                        //save num_floor
+						fclose(path);
+					}
 					return;
 		}
 	}
 	
+}
+void resume_game() {
+	FILE* path1 = NULL;
+	path1 = fopen(logged_in_user.username, "rb");
+	if(path1 == NULL) {     //don't have incomplete game
+		mvprintw(LINES/2 + 2, COLS / 2 - 20, "You don't have any incomplete GAME!\n");
+		mvprintw(LINES/2 + 3, COLS / 2 - 20, "    You can start a New game!\n");
+		getch();
+		return;
+	}
+
+	init_color(11, 1000, 843, 0);   // رنگ طلایی 
+	init_pair(1, COLOR_GREEN, COLOR_BLACK);
+	init_pair(2, COLOR_RED, COLOR_BLACK);
+    init_pair(3, 11, COLOR_BLACK); // جفت رنگ طلایی
+	init_pair(4, COLOR_YELLOW, COLOR_WHITE);
+	init_pair(5, COLOR_BLUE, COLOR_BLACK);
+	
+	FILE* fileptr = fopen("score.dat", "rb+");     //for saving score and gold
+	game_user_info temp;
+	int find = 0;
+	if(fileptr == NULL) fileptr = fopen("score.dat", "wb"); //file weren't available
+	if(fileptr != NULL && is_login == 1) {
+		while(!feof(fileptr)) {
+			fread(&temp, sizeof(game_user_info), 1, fileptr);
+			if(strcmp(logged_in_user.username, temp.username) == 0) {
+				fseek(fileptr, -sizeof(game_user_info), SEEK_CUR);
+				find = 1;
+				break;
+			}
+		}
+	}
+	if(is_login == 1 && find == 0) {    //the user wasn't in the list
+		fseek(fileptr, 0, SEEK_END);
+		strcpy(temp.username, logged_in_user.username);  //write down the username for the user
+		temp.start_time = time(NULL);   //write down the current time as the first game for the player
+		temp.gold = 0;
+		temp.number_game = 0;
+		temp.total_score = 0;
+	}
+
+
+	floor_info floor[4];
+	treasure_info treasure;
+	achievement_info achievement;
+	int g = 0;  //num_floor
+
+	fread(floor, sizeof(floor_info), 4, path1);
+	fread(&treasure, sizeof(treasure_info), 1, path1);
+	fread(&achievement, sizeof(achievement), 1 ,path1);
+	fread(&g, sizeof(int), 1, path1);
+	fclose(path1);
+
+	location position;
+	if(g != 10)   //Not in treasure room
+		start_location_random(&position, &floor[g].room[0]);
+	
+
+	while (g != 10) {           //Start last game
+		clear();
+		print_map_conditionally(floor+g, &position); //map
+
+		attron(A_REVERSE | COLOR_PAIR(color));
+		mvprintw(position.y, position.x, "$");    //Hero
+		attroff(A_REVERSE | COLOR_PAIR(color));
+
+		print_enemy_conditionally(floor+g);     //enemies
+		check_around_for_enemy(floor+g, &position, &achievement);
+
+		if(lose_the_game(&achievement) == true) {     //check for being alive 
+			score_for_gold(&achievement);
+			lose_page(&achievement);
+			if(is_login == 1) {
+				temp.number_game += 1;
+				temp.gold += achievement.save_gold;
+				temp.total_score += achievement.score;
+				fwrite(&temp, sizeof(game_user_info), 1, fileptr);  //save in file
+				remove(logged_in_user.username);    //remove incomplete game
+			}
+			fclose(fileptr);
+			return;
+		}
+
+		if(go_to_treasure_room(floor+g, &position, g) == true) {
+			//start_location_random(&position, &treasure.room);  //I put this before start the next loop
+			transfer_snake_to_treasure_room(floor+g, &treasure);
+			g = 10;   //sign for being in treasure room
+			break;
+		}
+
+		int temp = g;
+		pickup_and_check_trap_and_health(floor+g, &position, &achievement);
+
+		int ch = getch();
+		int a = handle_input_key(ch);
+		switch (a) {
+			case 0:    //list and other 
+				control_list_and_inputs(floor+g, &position, &g, &achievement, ch);
+				break;
+			case 1:    //movement  (8 direction)
+				control_movement_for_player(floor+g, &position, &achievement, ch);
+				check_active_enchant(&achievement);
+				check_hunger_bar(&achievement);
+				move_alive_enemies(floor+g, &position, &achievement);
+				break;
+			case 2:    //fight    (Space)
+				fight(floor+g, &position, &achievement);
+				move_alive_enemies(floor+g, &position, &achievement);
+				check_active_enchant(&achievement);
+				check_hunger_bar(&achievement);
+				break;
+			case 3:     //Stop and exit     (Esc)
+				if(exit_the_game(&achievement) == true) {
+					fclose(fileptr);
+					if(is_login == 1) {   //saving the game
+						FILE* path = fopen(logged_in_user.username, "wb");
+						fwrite(floor, sizeof(floor_info), 4, path);              //save 4 floors detail
+						fwrite(&treasure, sizeof(treasure_info), 1, path);       //save treasure room
+						fwrite(&achievement, sizeof(achievement_info), 1, path); //save the player's achievement
+						fwrite(&g, sizeof(int), 1, path);                        //save num_floor
+						fclose(path);
+					}
+					return;
+				}
+		}
+
+		if(g != temp) {       //if floor was changed
+			start_location_random(&position, &floor[g].room[0]);
+			transfer_snake_to_other_floor(floor+temp, floor+g);
+		}
+
+		refresh();
+	}
+
+	start_location_random(&position, &treasure.room);    //random place in treasure room
+	while (1) {           //Treasure room
+		clear();
+		print_treasure_room(&treasure);
+		attron(A_REVERSE | COLOR_PAIR(color));
+		mvprintw(position.y, position.x, "$");
+		attroff(A_REVERSE | COLOR_PAIR(color));
+
+		check_trap_and_distance_in_treasure_room(&treasure, &position, &achievement);
+		check_around_for_enemy_in_treasure_room(&treasure, &position, &achievement);
+
+		if(lose_the_game(&achievement) == true) {     //check for being alive 
+			achievement.score += 100;           //score for lose in treasure room
+			score_for_gold(&achievement);
+			lose_page(&achievement);
+			if(is_login == 1) {
+				temp.number_game += 1;
+				temp.gold += achievement.save_gold;
+				temp.total_score += achievement.score;
+				fwrite(&temp, sizeof(game_user_info), 1, fileptr);  //save in file
+				remove(logged_in_user.username);    //remove incomplete game
+			}
+			fclose(fileptr);
+			return;
+		}
+
+		if(win_the_game(&treasure, &position) == true)  {  //win
+			score_for_win_treasure_room(&achievement);
+			score_for_gold(&achievement);
+			win_page(&achievement);
+			if(is_login == 1) {
+				temp.number_game += 1;
+				temp.gold += achievement.save_gold;
+				temp.total_score += achievement.score;
+				fwrite(&temp, sizeof(game_user_info), 1, fileptr);  //save in file
+				remove(logged_in_user.username);  //remove incomplete game
+			}
+			fclose(fileptr);
+			return;
+		}
+
+		int ch = getch();
+		int a = handle_input_key(ch);
+		switch (a) {
+			case 0:    //list and other 
+				control_list_treasure_room(&treasure, &position, &achievement, ch);
+				break;
+			case 1:    //movement  (8 direction)
+				control_movement_for_player_in_treasure(&treasure, &position, &achievement, ch);
+				check_active_enchant(&achievement);
+				check_hunger_bar(&achievement);
+				move_alive_enemies_in_treasure_room(&treasure, &position, &achievement);
+				break;
+			case 2:    //fight    (Space)
+				fight_in_treasure_room(&treasure, &position, &achievement);
+				move_alive_enemies_in_treasure_room(&treasure, &position, &achievement);
+				check_active_enchant(&achievement);
+				check_hunger_bar(&achievement);
+				break;
+			case 3:     //exit     (Esc)
+				if(exit_the_game(&achievement) == true)
+					fclose(fileptr);
+					if(is_login == 1) {   //saving the game
+						FILE* path = fopen(logged_in_user.username, "wb");
+						fwrite(floor, sizeof(floor_info), 4, path);              //save 4 floors detail
+						fwrite(&treasure, sizeof(treasure_info), 1, path);       //save treasure room
+						fwrite(&achievement, sizeof(achievement_info), 1, path); //save the player's achievement
+						fwrite(&g, sizeof(int), 1, path);                        //save num_floor
+						fclose(path);
+					}
+					return;
+		}
+	}
+	
+
 }
 void start_location_random(location* start, room_info* room) {
 	while(1) {
@@ -1587,7 +1887,7 @@ void generate_a_floor(floor_info* a_floor, int number) {
 	int n[2];
 	for(int i = 0; i < 2; i++) {
 		n[i] = rand() % 5 + 1;
-		if(a_floor->room[n[i]].room_type == ENCHANT_ROOM) { i -= 1; continue;}
+		//if(a_floor->room[n[i]].room_type == ENCHANT_ROOM) { i -= 1; continue;}
 		if(i == 1 && n[1] == n[0]) { i -= 1; continue;}
 	}
 	int d;
@@ -2277,12 +2577,13 @@ void check_trap_and_distance_in_treasure_room(treasure_info* treasure, location*
 }
 void pickup_a_gold_food(room_info* room, location* place, achievement_info* achievement) {
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
+	init_pair(2, COLOR_RED, COLOR_BLACK);
 	attron(COLOR_PAIR(1));
 	int a = place->x - room->start_point.x;
 	int b = place->y - room->start_point.y;
 	if(room->cell[b][a] == 'g') {
 		for(int i = 0; i < 5; i++) {
-			if(	room->gold[i].x == a || room->gold[i].y == b ) {
+			if(	room->gold[i].x == a && room->gold[i].y == b ) {
 				achievement->save_gold += room->gold[i].value;
 				mvprintw(1, 5, "Some Gold \U0001F4B0 was gotten with a value %d", room->gold[i].value);
 				room->cell[b][a] = '.';
@@ -2296,7 +2597,9 @@ void pickup_a_gold_food(room_info* room, location* place, achievement_info* achi
 	}
 	else if (room->cell[b][a] == 'M') {
 		if(achievement->food_amount == 5) {
+			attron(COLOR_PAIR(2));
 			mvprintw(1, 5, "You can't pick_up more than 5 meals!");
+			attroff(COLOR_PAIR(2));
 		}
 		else {
 			mvprintw(1, 5, "You put some food \U0001F354 in your bag!");
@@ -3650,13 +3953,14 @@ void show_help_for_game() {
 	clear();
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
 	attron(COLOR_PAIR(1));
-	mvprintw(1, 10, "g      pick_up a weapon ro enchant");
-	mvprintw(2, 10, "i      list of weapons in your bag and can change your current");
-	mvprintw(3, 10, "e      list of enchants in your bag and can activate");
-	mvprintw(4, 10, "G      show how many gold you have");
-	mvprintw(5, 10, "H      show your health_rate and hunger_bar and meals");
-	mvprintw(6, 10, ">      go to next floor (only in < cell)");
-	mvprintw(7, 10, "<      go to previous floor (only in < cell)");
+	mvprintw(1, 10, "g        pick_up a weapon ro enchant");
+	mvprintw(2, 10, "i        list of weapons in your bag and can change your current");
+	mvprintw(3, 10, "e        list of enchants in your bag and can activate");
+	mvprintw(4, 10, "G        show how many gold you have");
+	mvprintw(5, 10, "H        show your health_rate and hunger_bar and meals");
+	mvprintw(6, 10, ">        go to next floor (only in < cell)");
+	mvprintw(7, 10, "<        go to previous floor (only in < cell)");
+	mvprintw(8, 10, "Esc      Stop and save the game");
 	getch();
 	attroff(COLOR_PAIR(1));
 }
@@ -4256,12 +4560,13 @@ int search_path_direction_in_treasure_room(treasure_info* treasure, location* pl
 	}
 }
 
-bool exit_the_game() {
+bool exit_the_game(achievement_info* achievement) {
 	init_pair(2, COLOR_RED, COLOR_BLACK);
 	clear();
 	attron(COLOR_PAIR(2));
 	mvprintw(LINES/2,     COLS / 2 - 20, "Do you want to exit the game?\n");
-	mvprintw(LINES/2 + 1, COLS / 2 - 20, "Press y/n to end/continue the game.\n");
+	mvprintw(LINES/2 + 1, COLS / 2 - 20, "Score: %d    Gold: %d \n", achievement->score, achievement->save_gold);
+	mvprintw(LINES/2 + 2, COLS / 2 - 20, "Press y/n to end/continue the game.\n");
 	attroff(COLOR_PAIR(2));
 	while(1) {
 		int ch = getch();
@@ -4270,6 +4575,31 @@ bool exit_the_game() {
 		if(ch == 'n' || ch == 'N')
 			return false;
 	}
+}
+bool win_the_game(treasure_info* treasure, location* place) {
+	init_pair(1, COLOR_GREEN, COLOR_BLACK);
+	init_pair(2, COLOR_RED, COLOR_BLACK);
+	int a = place->x - treasure->room.start_point.x;
+	int b = place->y - treasure->room.start_point.y;
+	if(treasure->room.cell[b][a] == 'B') {
+		for(int i = 0; i < 20; i++) {
+			if(treasure->enemy[i].health > 0) {
+				attron(COLOR_PAIR(2));
+				mvprintw(3, 5, "You should defeat all the enemies then you can pick_up the treasure!");
+				attroff(COLOR_PAIR(2));
+				getch();
+				return false;
+			}
+		}
+		return true;
+	}
+	return false;
+}
+bool lose_the_game(achievement_info* achievement) {
+	if(achievement->health <= 0 || achievement->hunger_bar <= 0) {
+		return true;
+	}
+	else return false;
 }
 void score_kill_enemy(achievement_info* achievement, char name, int n) {
 	switch (name) {
@@ -4289,4 +4619,13 @@ void score_kill_enemy(achievement_info* achievement, char name, int n) {
 			achievement->score += 120*n;
 			break;
 	}
+}
+void score_for_gold(achievement_info* achievement) {
+	int power = 7 + -(difficulty)*3;         //Easy----> 4x       Medium----->7x    Hard----->10x
+	achievement->score += power * achievement->save_gold;    
+}
+void score_for_win_treasure_room(achievement_info* achievement) {
+	srand(time(NULL));
+	achievement->score += 300;                       //score for win the game in treasure room   300
+	achievement->save_gold += rand() % 50 + 150;     //amount of gold in treasure room     (150 to 200)
 }
