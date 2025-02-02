@@ -1059,11 +1059,7 @@ void new_game() {
 
 	while (1) {           //Start New game
 		clear();
-		print_map_conditionally(floor+g, &position); //map
-
-		attron(COLOR_PAIR(color));
-		mvprintw(position.y, position.x, "\U00002697");    //Hero
-		attroff(COLOR_PAIR(color));
+		print_map_conditionally(floor+g, &position); //map  Hero
 
 		print_enemy_conditionally(floor+g);     //enemies
 		check_around_for_enemy(floor+g, &position, &achievement);
@@ -1125,6 +1121,9 @@ void new_game() {
 		}
 
 		if(g != temp) {       //if floor was changed
+			attron(COLOR_PAIR(1));
+			mvprintw(1, 10, "You will be transported to other floor!");
+			mvprintw(2, 10, "press any key to go."); getch(); attroff(COLOR_PAIR(1));
 			start_location_random(&position, &floor[g].room[0]);
 			transfer_snake_to_other_floor(floor+temp, floor+g);
 		}
@@ -1263,11 +1262,7 @@ void resume_game() {
 
 	while (g != 10) {           //Start last game
 		clear();
-		print_map_conditionally(floor+g, &position); //map
-
-		attron(COLOR_PAIR(color));
-		mvprintw(position.y, position.x, "\U00002697");    //Hero
-		attroff(COLOR_PAIR(color));
+		print_map_conditionally(floor+g, &position); //map  Hero
 
 		print_enemy_conditionally(floor+g);     //enemies
 		check_around_for_enemy(floor+g, &position, &achievement);
@@ -1330,6 +1325,9 @@ void resume_game() {
 		}
 
 		if(g != temp) {       //if floor was changed
+			attron(COLOR_PAIR(1));
+			mvprintw(1, 10, "You will be transported to other floor!");
+			mvprintw(2, 10, "press any key to go."); getch(); attroff(COLOR_PAIR(1));
 			start_location_random(&position, &floor[g].room[0]);
 			transfer_snake_to_other_floor(floor+temp, floor+g);
 		}
@@ -1430,6 +1428,7 @@ void print_map_conditionally(floor_info* floor, location* place) {
 	init_pair(4, COLOR_YELLOW, COLOR_WHITE);
 	init_pair(5, COLOR_BLUE, COLOR_BLACK); 
 
+	bool new_room = false;
 	clear();
 	for(int i = 0; i < 6; i++) {
 		if( place->x > floor->room[i].start_point.x  &&  place->x < floor->room[i].start_point.x + floor->room[i].wide - 1 &&
@@ -1440,19 +1439,19 @@ void print_map_conditionally(floor_info* floor, location* place) {
 	}
 	if(floor->room[floor->open_room + 1].door[0].y == 0) {  //door is up
 		if( place->x == floor->room[floor->open_room + 1].door[0].x + floor->room[floor->open_room + 1].start_point.x &&
-			place->y == floor->room[floor->open_room + 1].start_point.y - 2)  floor->open_room += 1;
+			place->y == floor->room[floor->open_room + 1].start_point.y - 2)  { floor->open_room += 1; new_room = true; }
 	}
 	else if(floor->room[floor->open_room + 1].door[0].x == floor->room[floor->open_room + 1].wide - 1) {    //door is right
 		if( place->x == floor->room[floor->open_room + 1].door[0].x + floor->room[floor->open_room + 1].start_point.x + 2 &&
-			place->y == floor->room[floor->open_room + 1].door[0].y +  floor->room[floor->open_room + 1].start_point.y)  floor->open_room += 1;
+			place->y == floor->room[floor->open_room + 1].door[0].y +  floor->room[floor->open_room + 1].start_point.y)   { floor->open_room += 1; new_room = true; }
 	}
 	else if(floor->room[floor->open_room + 1].door[0].y == floor->room[floor->open_room + 1].height - 1) {   //door is down
 		if( place->x == floor->room[floor->open_room + 1].door[0].x + floor->room[floor->open_room + 1].start_point.x &&
-			place->y == floor->room[floor->open_room + 1].door[0].y +  floor->room[floor->open_room + 1].start_point.y + 2)  floor->open_room += 1;
+			place->y == floor->room[floor->open_room + 1].door[0].y +  floor->room[floor->open_room + 1].start_point.y + 2)  { floor->open_room += 1; new_room = true; }
 	}
 	else if(floor->room[floor->open_room + 1].door[0].x == 0) {   //door is left
 		if( place->x == floor->room[floor->open_room + 1].start_point.x - 2 &&
-			place->y == floor->room[floor->open_room + 1].door[0].y +  floor->room[floor->open_room + 1].start_point.y)  floor->open_room += 1;		
+			place->y == floor->room[floor->open_room + 1].door[0].y +  floor->room[floor->open_room + 1].start_point.y)   { floor->open_room += 1; new_room = true; }
 	}
 	for(int k = 0; k <= floor->open_room; k++) {   //number of rooms that should be printed
 		for (int i = 0; i < floor->room[k].height; i++) {
@@ -1480,6 +1479,18 @@ void print_map_conditionally(floor_info* floor, location* place) {
 	}
 	for(int i = 0; i <= floor->open_corridor + 5; i++) {
 		mvprintw(floor->corridor[i].y, floor->corridor[i].x, "\U00002591");
+	}
+
+	attron(COLOR_PAIR(color));
+	mvprintw(place->y, place->x, "\U00002697");    //Hero
+	attroff(COLOR_PAIR(color));
+	
+	if(new_room == true) {       //message for going to a new room
+		attron(COLOR_PAIR(1));
+		mvprintw(1, 5, "You are going to a new room!");
+		getch();
+		mvprintw(1, 5, "                            ");
+		attroff(COLOR_PAIR(1));
 	}
 }
 void print_all_map(floor_info* floor) {
@@ -2233,6 +2244,7 @@ void control_list_and_inputs(floor_info* floor, location* place, int* num_floor,
 		clear();
 		attron(COLOR_PAIR(1));
 		mvprintw(1, 10, "The amount of your collected Gold ---> %d", achievement->save_gold);
+		mvprintw(3, 10, "The amount of your score ---> %d", achievement->score);
 		attroff(COLOR_PAIR(1));
 		getch();
 		break;
@@ -2361,6 +2373,7 @@ void control_list_treasure_room(treasure_info* treasure, location* place, achiev
 		clear();
 		attron(COLOR_PAIR(1));
 		mvprintw(1, 10, "The amount of your collected Gold ---> %d", achievement->save_gold);
+		mvprintw(3, 10, "The amount of your score ---> %d", achievement->score);
 		attroff(COLOR_PAIR(1));
 		getch();
 		break;
@@ -3033,7 +3046,7 @@ void move_alive_enemies_in_treasure_room(treasure_info* treasure, location* plac
 		if(achievement->enchant.distance % 2) return;
 	}
 	for(int i = 0; i < 20; i++) {
-		if(treasure->enemy[i].place.x > place->x) {       //just follow till door
+		if(treasure->enemy[i].place.x > place->x) {   
 			treasure->enemy[i].place.x -= 1;
 			if( check_location_in_treasure_room(treasure, &treasure->enemy[i].place) == false || 
 				treasure->enemy[i].place.x == place->x && treasure->enemy[i].place.y == place->y ||
@@ -3065,7 +3078,7 @@ void move_alive_enemies_in_treasure_room(treasure_info* treasure, location* plac
 }
 void transfer_snake_to_other_floor(floor_info* p_floor, floor_info* n_floor) {
 	for(int i = 0; i < 16; i++) {
-		if(p_floor->enemy[i].health > 0 && p_floor->enemy[i].name == 'S') {
+		if(p_floor->enemy[i].health > 0 && p_floor->enemy[i].room <= p_floor->open_room && p_floor->enemy[i].name == 'S') {
 			n_floor->enemy[n_floor->number_enemy].name = 'S';
 			n_floor->enemy[n_floor->number_enemy].room = 0;
 			n_floor->enemy[n_floor->number_enemy].health = p_floor->enemy[i].health;
@@ -3077,7 +3090,7 @@ void transfer_snake_to_other_floor(floor_info* p_floor, floor_info* n_floor) {
 }
 void transfer_snake_to_treasure_room(floor_info* p_floor, treasure_info* treasure) {
 	for(int i = 0; i < 16; i++) {
-		if(p_floor->enemy[i].health > 0 && p_floor->enemy[i].name == 'S') {
+		if(p_floor->enemy[i].health > 0 && p_floor->enemy[i].room <= p_floor->open_room && p_floor->enemy[i].name == 'S') {
 			treasure->enemy[treasure->number_enemy].name = 'S';
 			treasure->enemy[treasure->number_enemy].room = 0;
 			treasure->enemy[treasure->number_enemy].health = p_floor->enemy[i].health;
@@ -3948,7 +3961,7 @@ void show_help_for_game() {
 	mvprintw(1, 10, "g        pick_up a weapon ro enchant");
 	mvprintw(2, 10, "i        list of weapons in your bag and can change your current");
 	mvprintw(3, 10, "e        list of enchants in your bag and can activate");
-	mvprintw(4, 10, "G        show how many gold you have");
+	mvprintw(4, 10, "G        show how many gold and score you have");
 	mvprintw(5, 10, "H        show your health_rate and hunger_bar and meals");
 	mvprintw(6, 10, ">        go to next floor (only in < cell)");
 	mvprintw(7, 10, "<        go to previous floor (only in < cell)");
