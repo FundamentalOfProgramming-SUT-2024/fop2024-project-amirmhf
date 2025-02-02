@@ -796,7 +796,9 @@ void page_score_table() {
 	fileptr = fopen("score.dat", "rb");
 
 	if (fileptr == NULL) {
-		mvprintw(5, 15, "Can not open the file!!\n");
+		attron(COLOR_PAIR(2));
+		mvprintw(5, 15, "There is NO user in this list!\n");
+		attroff(COLOR_PAIR(2));
 		getch();
 		return;
 	}
@@ -1059,9 +1061,9 @@ void new_game() {
 		clear();
 		print_map_conditionally(floor+g, &position); //map
 
-		attron(A_REVERSE | COLOR_PAIR(color));
-		mvprintw(position.y, position.x, "$");    //Hero
-		attroff(A_REVERSE | COLOR_PAIR(color));
+		attron(COLOR_PAIR(color));
+		mvprintw(position.y, position.x, "\U00002697");    //Hero
+		attroff(COLOR_PAIR(color));
 
 		print_enemy_conditionally(floor+g);     //enemies
 		check_around_for_enemy(floor+g, &position, &achievement);
@@ -1133,9 +1135,9 @@ void new_game() {
 	while (1) {           //Treasure room
 		clear();
 		print_treasure_room(&treasure);
-		attron(A_REVERSE | COLOR_PAIR(color));
-		mvprintw(position.y, position.x, "$");
-		attroff(A_REVERSE | COLOR_PAIR(color));
+		attron(COLOR_PAIR(color));
+		mvprintw(position.y, position.x, "\U00002697");
+		attroff(COLOR_PAIR(color));
 
 		check_trap_and_distance_in_treasure_room(&treasure, &position, &achievement);
 		check_around_for_enemy_in_treasure_room(&treasure, &position, &achievement);
@@ -1204,7 +1206,7 @@ void new_game() {
 }
 void resume_game() {
 	FILE* path1 = NULL;
-	path1 = fopen(logged_in_user.username, "rb");
+	path1 = fopen(logged_in_user.username, "rb");    //Loading last game
 	if(path1 == NULL) {     //don't have incomplete game
 		mvprintw(LINES/2 + 2, COLS / 2 - 20, "You don't have any incomplete GAME!\n");
 		mvprintw(LINES/2 + 3, COLS / 2 - 20, "    You can start a New game!\n");
@@ -1263,9 +1265,9 @@ void resume_game() {
 		clear();
 		print_map_conditionally(floor+g, &position); //map
 
-		attron(A_REVERSE | COLOR_PAIR(color));
-		mvprintw(position.y, position.x, "$");    //Hero
-		attroff(A_REVERSE | COLOR_PAIR(color));
+		attron(COLOR_PAIR(color));
+		mvprintw(position.y, position.x, "\U00002697");    //Hero
+		attroff(COLOR_PAIR(color));
 
 		print_enemy_conditionally(floor+g);     //enemies
 		check_around_for_enemy(floor+g, &position, &achievement);
@@ -1339,9 +1341,9 @@ void resume_game() {
 	while (1) {           //Treasure room
 		clear();
 		print_treasure_room(&treasure);
-		attron(A_REVERSE | COLOR_PAIR(color));
-		mvprintw(position.y, position.x, "$");
-		attroff(A_REVERSE | COLOR_PAIR(color));
+		attron(COLOR_PAIR(color));
+		mvprintw(position.y, position.x, "\U00002697");  //Hero
+		attroff(COLOR_PAIR(color));
 
 		check_trap_and_distance_in_treasure_room(&treasure, &position, &achievement);
 		check_around_for_enemy_in_treasure_room(&treasure, &position, &achievement);
@@ -1520,7 +1522,6 @@ void print_one_element(int y, int x, char value) {
 	init_pair(6, COLOR_MAGENTA, COLOR_BLACK);       //-----> Food, weapons
 	init_pair(7, COLOR_CYAN, COLOR_BLACK);          //-----> staircase
 	init_pair(8, 12, COLOR_BLACK);                  //-----> enchants
-	init_pair(9, COLOR_RED, COLOR_GREEN);           //-----> enemies
 
 	switch (value) {
 		case '<':  //staircase
@@ -1595,15 +1596,6 @@ void print_one_element(int y, int x, char value) {
 			attron(COLOR_PAIR(1));
 			mvprintw(y, x, "%c", value);
 			attroff(COLOR_PAIR(1));
-			break;
-		case 'D':      //enemies
-		case 'F':      //enemies
-		case 'G':      //enemies
-		case 'S':      //enemies
-		case 'U':      //enemies
-			attron(COLOR_PAIR(9));
-			mvprintw(y, x, "%c", value);
-			attroff(COLOR_PAIR(9));
 			break;
 		case '|':      //wall
 			mvprintw(y, x, "\U00002503");
@@ -2246,9 +2238,9 @@ void control_list_and_inputs(floor_info* floor, location* place, int* num_floor,
 		break;
 	case 'M':   //represent all the map
 		print_all_map(floor);
-		attron(A_REVERSE | COLOR_PAIR(3));
-		mvprintw(place->y, place->x, "$");
-		attroff(A_REVERSE | COLOR_PAIR(3));
+		attron(COLOR_PAIR(color));
+		mvprintw(place->y, place->x, "\U00002697");   //Hero
+		attroff(COLOR_PAIR(color));
 		ch = getch();
 		break;
 	case KEY_F(2):   //SHOW HELP
