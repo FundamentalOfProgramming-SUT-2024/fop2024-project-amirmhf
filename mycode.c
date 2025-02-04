@@ -3354,8 +3354,8 @@ void shot_with_mace(floor_info* floor, location* place, achievement_info* achiev
 					mvprintw(1, 50, "You hit %s with Mace \u2692 !", name);
 					mvprintw(2, 50, "%s life_remain is  %d", name, floor->enemy[j].health > 0 ? floor->enemy[j].health : 0);
 					getch();
-					mvprintw(1, 50, "                                           ");
-					mvprintw(2, 50, "                                           ");
+					mvprintw(1, 50, "                                             ");
+					mvprintw(2, 50, "                                             ");
 					if(floor->enemy[j].health <= 0) score_kill_enemy(achievement, floor->enemy[j].name, 1);
 					break;
 			}
@@ -3384,8 +3384,8 @@ void shot_with_sword(floor_info* floor, location* place, achievement_info* achie
 					mvprintw(1, 50, "You hit %s with Sword \u2694!", name);
 					mvprintw(2, 50, "%s life_remain is  %d", name, floor->enemy[j].health > 0 ? floor->enemy[j].health : 0);
 					getch();
-					mvprintw(1, 50, "                                           ");
-					mvprintw(2, 50, "                                           ");
+					mvprintw(1, 50, "                                             ");
+					mvprintw(2, 50, "                                             ");
 					if(floor->enemy[j].health <= 0) score_kill_enemy(achievement, floor->enemy[j].name, 1);
 					break;
 			}
@@ -4272,8 +4272,8 @@ void shot_with_mace_in_treasure_room(treasure_info* treasure, location* place, a
 					mvprintw(1, 50, "You hit %s with Mace \u2692 !", name);
 					mvprintw(2, 50, "%s life_remain is  %d", name, treasure->enemy[j].health > 0 ? treasure->enemy[j].health : 0);
 					getch();
-					mvprintw(1, 50, "                                                    ");
-					mvprintw(2, 50, "                                                    ");
+					mvprintw(1, 50, "                                                      ");
+					mvprintw(2, 50, "                                                      ");
 					if(treasure->enemy[j].health <= 0) score_kill_enemy(achievement, treasure->enemy[j].name, 2);
 					break;
 			}
@@ -4302,8 +4302,8 @@ void shot_with_sword_in_treasure_room(treasure_info* treasure, location* place, 
 					mvprintw(1, 50, "You hit %s with Sword \u2694!", name);
 					mvprintw(2, 50, "%s life_remain is  %d", name, treasure->enemy[j].health > 0 ? treasure->enemy[j].health : 0);
 					getch();
-					mvprintw(1, 50, "                                                    ");
-					mvprintw(2, 50, "                                                    ");
+					mvprintw(1, 50, "                                                      ");
+					mvprintw(2, 50, "                                                      ");
 					if(treasure->enemy[j].health <= 0) score_kill_enemy(achievement, treasure->enemy[j].name, 2);
 					break;
 			}
