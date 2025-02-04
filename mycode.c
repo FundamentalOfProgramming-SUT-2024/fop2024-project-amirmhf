@@ -28,7 +28,6 @@ typedef struct {
 typedef struct {
 	char username[SIZE_USERNAME];
 	int total_score;
-//	int game_score;
 	int gold;
 	int number_game;
 	time_t start_time;
@@ -228,6 +227,7 @@ int main() {
 	return 0;
 }
 
+
 void first_page() {
 	draw_page_border();
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
@@ -238,6 +238,8 @@ void first_page() {
 	attroff(COLOR_PAIR(1) | A_BOLD);
 	getch();
 }
+
+
 void design_initial_menu() {
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
 	init_pair(2, COLOR_RED, COLOR_BLACK);
@@ -291,6 +293,8 @@ void design_initial_menu() {
 			}
 	}
 }
+
+
 void draw_page_border() {
     clear();
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
@@ -307,6 +311,8 @@ void draw_page_border() {
     }
 	attroff(COLOR_PAIR(1));
 }
+
+
 void create_new_user() {
 	
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
@@ -482,6 +488,8 @@ void create_new_user() {
 	
 
 }
+
+
 int check_username(char* username) {
 	if (strlen(username) == 0) {
 		mvprintw(18, COLS / 3, "This username is invalid !!!!!!!\n");
@@ -505,6 +513,8 @@ int check_username(char* username) {
 	fclose(fileptr);
 	return 1;
 }
+
+
 int check_password(char* password) {
 	if (strlen(password) < 7) {
 		mvprintw(18, COLS / 3, "The length of password must be at least 7 characters !!!!!!!\n");
@@ -540,6 +550,8 @@ int check_password(char* password) {
 	}
 	return 1;
 }
+
+
 int check_email(char* email) {
 	int flag = 0;
 	int i = 0;
@@ -555,6 +567,8 @@ int check_email(char* email) {
 		if(flag == 0) return 0;
 		return 1;
 }
+
+
 char* input_without_initial_and_final_space(int max_size) {
     char* output = malloc(max_size * sizeof(char));
     char temp;
@@ -568,6 +582,8 @@ char* input_without_initial_and_final_space(int max_size) {
     output[i+1] = '\0';
     return output;
 }
+
+
 void login_user() {
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
 	init_pair(2, COLOR_RED, COLOR_BLACK);
@@ -655,6 +671,8 @@ void login_user() {
 		refresh();
 	}
 }
+
+
 int get_and_check_username_and_pass_for_login() {
 	user_info user;
 	echo();
@@ -705,6 +723,8 @@ int get_and_check_username_and_pass_for_login() {
 	fclose(fileptr);
 	return 0;
 }
+
+
 void forgot_password() {
 	clear();
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
@@ -748,6 +768,8 @@ void forgot_password() {
 		refresh();
 	}
 }
+
+
 int find_password(user_info* finding) {
 	FILE* fileptr = NULL;
 	fileptr = fopen("users.dat", "rb");
@@ -783,6 +805,8 @@ int find_password(user_info* finding) {
 	return 0;
 
 }
+
+
 void page_score_table() {
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
 	init_pair(2, COLOR_RED, COLOR_BLACK);
@@ -852,6 +876,8 @@ void page_score_table() {
 	refresh();
 	getch();
 }
+
+
 void pre_game_menu() {
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
 	init_pair(2, COLOR_RED, COLOR_BLACK);
@@ -921,6 +947,8 @@ void pre_game_menu() {
 				}
 	}
 }
+
+
 void setting_for_game() {
 	init_color(11, 1000, 843, 0);   // طلایی 
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
@@ -1007,6 +1035,8 @@ void setting_for_game() {
 		attron(COLOR_PAIR(3));
 	}
 }
+
+
 void new_game() {
 	init_color(11, 1000, 843, 0);   // رنگ طلایی 
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
@@ -1060,6 +1090,10 @@ void new_game() {
 	while (1) {           //Start New game
 		clear();
 		print_map_conditionally(floor+g, &position); //map  Hero
+
+		attron(COLOR_PAIR(1));
+		mvprintw(1, 7*COLS/8, "Floor %d", g+1);   //show floor number at the right of the page 
+		attroff(COLOR_PAIR(1));
 
 		print_enemy_conditionally(floor+g);     //enemies
 		check_around_for_enemy(floor+g, &position, &achievement);
@@ -1203,6 +1237,8 @@ void new_game() {
 	}
 	
 }
+
+
 void resume_game() {
 	FILE* path1 = NULL;
 	path1 = fopen(logged_in_user.username, "rb");    //Loading last game
@@ -1263,6 +1299,10 @@ void resume_game() {
 	while (g != 10) {           //Start last game
 		clear();
 		print_map_conditionally(floor+g, &position); //map  Hero
+
+		attron(COLOR_PAIR(1));
+		mvprintw(1, 7*COLS/8, "Floor %d", g+1);   //show floor number at the right of the page 
+		attroff(COLOR_PAIR(1));
 
 		print_enemy_conditionally(floor+g);     //enemies
 		check_around_for_enemy(floor+g, &position, &achievement);
@@ -1411,6 +1451,8 @@ void resume_game() {
 	
 
 }
+
+
 void start_location_random(location* start, room_info* room) {
 	while(1) {
 		start->x = rand() % (room->wide - 2) + 1;  //x
@@ -1420,6 +1462,8 @@ void start_location_random(location* start, room_info* room) {
 	start->x += room->start_point.x;
 	start->y += room->start_point.y;
 }
+
+
 void print_map_conditionally(floor_info* floor, location* place) {
 	init_color(11, 1000, 843, 0);   // طلایی 
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
@@ -1493,6 +1537,8 @@ void print_map_conditionally(floor_info* floor, location* place) {
 		attroff(COLOR_PAIR(1));
 	}
 }
+
+
 void print_all_map(floor_info* floor) {
 		for(int k = 0; k < 6; k++) {
 			for (int i = 0; i < floor->room[k].height; i++) {
@@ -1522,6 +1568,8 @@ void print_all_map(floor_info* floor) {
 	}
 
 }
+
+
 void print_one_element(int y, int x, char value) {
 	init_color(12, 1000, 1000, 0); //yellow
 	init_color(11, 1000, 843, 0);   // رنگ طلایی 
@@ -1618,6 +1666,8 @@ void print_one_element(int y, int x, char value) {
 			mvprintw(y, x, "%c", value);
 	}
 }
+
+
 void generate_room(room_info* a_room, int number) {
 	srand(time(NULL) + number * 23456);
     int a = (rand() % 4) + 8;
@@ -1760,10 +1810,14 @@ void generate_room(room_info* a_room, int number) {
 	}
 
 }
+
+
 bool check_value(room_info* room, int y, int x, char value) {
 	if(room->cell[y][x] == value) return true;
 	else return false;
 }
+
+
 char door_symbol(room_info* room, int n, int side) {
 	if(room->door_type[n] == REGULAR_DOOR)  return '+';
 	if(room->door_type[n] == PASSWORD_DOOR) return '@';
@@ -1772,6 +1826,8 @@ char door_symbol(room_info* room, int n, int side) {
 		else                            return '|';
 	}
 }
+
+
 void generate_a_floor(floor_info* a_floor, int number) {
 	refresh();
 	srand(time(NULL));
@@ -1957,6 +2013,8 @@ void generate_a_floor(floor_info* a_floor, int number) {
 	
 	refresh();
 }
+
+
 void generate_treasure_room(treasure_info* treasure) {
 	srand(time(NULL));
     int a = (rand() % 8) + 12; 
@@ -2054,6 +2112,8 @@ void generate_treasure_room(treasure_info* treasure) {
 	}
 
 }
+
+
 void print_treasure_room(treasure_info* treasure) {
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
 	mvprintw(10, 50, "This is TREASURE_ROOM and you should defeat all the enemies!\n");
@@ -2071,6 +2131,8 @@ void print_treasure_room(treasure_info* treasure) {
 		}
 	}
 }
+
+
 int handle_corridor(floor_info* floor, int first, int second, int index) {
 	int a = 1;
 	if(first == 0) a = 0;
@@ -2209,6 +2271,8 @@ int handle_corridor(floor_info* floor, int first, int second, int index) {
 	}
 	return index;
 }
+
+
 void control_list_and_inputs(floor_info* floor, location* place, int* num_floor, achievement_info* achievement, int ch) {
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
 	int current;
@@ -2260,6 +2324,8 @@ void control_list_and_inputs(floor_info* floor, location* place, int* num_floor,
 		break;
 	}
 }
+
+
 void control_movement_for_player(floor_info* floor, location* place, achievement_info* achievement, int ch) {
 	switch (ch)
 	{
@@ -2309,6 +2375,8 @@ void control_movement_for_player(floor_info* floor, location* place, achievement
 		break;
 	}
 }
+
+
 void control_movement_for_player_in_treasure(treasure_info* treasure, location* place, achievement_info* achievement, int ch) {
 	switch (ch)
 	{
@@ -2358,6 +2426,8 @@ void control_movement_for_player_in_treasure(treasure_info* treasure, location* 
 		break;
 	}
 }
+
+
 void control_list_treasure_room(treasure_info* treasure, location* place, achievement_info* achievement, int ch) {
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
 
@@ -2388,6 +2458,8 @@ void control_list_treasure_room(treasure_info* treasure, location* place, achiev
 		break;
 	}
 }
+
+
 bool check_location(floor_info* floor, location* place) {
 	for(int i = 0; i < 6; i++) {
 		if( place->x > floor->room[i].start_point.x  &&  place->x < floor->room[i].start_point.x + floor->room[i].wide - 1 &&
@@ -2426,6 +2498,8 @@ bool check_location(floor_info* floor, location* place) {
 
 	return false;
 }
+
+
 bool check_location_in_treasure_room(treasure_info* treasure, location* place) {
 	if( place->x > treasure->room.start_point.x  &&  place->x < treasure->room.start_point.x + treasure->room.wide - 1 &&
 		place->y > treasure->room.start_point.y  &&  place->y < treasure->room.start_point.y + treasure->room.height - 1 ) {
@@ -2445,6 +2519,8 @@ bool check_location_in_treasure_room(treasure_info* treasure, location* place) {
 	}
 	return false;
 }
+
+
 bool check_location_as_be_enemy(floor_info* floor, location* place, int j) {
 	for(int i = 0; i < 16; i++) {
 		if(i == j) continue;
@@ -2455,6 +2531,8 @@ bool check_location_as_be_enemy(floor_info* floor, location* place, int j) {
 	}
 	return false;
 }
+
+
 bool check_location_as_be_enemy_in_treasure_room(treasure_info* treasure, location* place, int j) {
 	for(int i = 0; i < 20; i++) {
 		if(i == j) continue;
@@ -2465,6 +2543,8 @@ bool check_location_as_be_enemy_in_treasure_room(treasure_info* treasure, locati
 	}
 	return false;
 }
+
+
 int check_location_as_be_enemy_with_index(floor_info* floor, location* place) {
 	for(int i = 0; i < 16; i++) {
 		if(floor->enemy[i].health > 0 && floor->enemy[i].room <= floor->open_room) {
@@ -2474,6 +2554,8 @@ int check_location_as_be_enemy_with_index(floor_info* floor, location* place) {
 	}
 	return 0;
 }
+
+
 int check_location_as_be_enemy_with_index_in_treasure_room(treasure_info* treasure, location* place) {
 	for(int i = 0; i < 20; i++) {
 		if(treasure->enemy[i].health > 0) {
@@ -2483,6 +2565,8 @@ int check_location_as_be_enemy_with_index_in_treasure_room(treasure_info* treasu
 	}
 	return 0;
 }
+
+
 int current_room(floor_info* floor, location* place) {
 	for(int i = 0; i < 6; i++) {
 		if( place->x > floor->room[i].start_point.x  &&  place->x < floor->room[i].start_point.x + floor->room[i].wide - 1 &&
@@ -2492,6 +2576,8 @@ int current_room(floor_info* floor, location* place) {
 	}
 	return -1;
 }
+
+
 void pickup_a_thing(room_info* room, location* place, achievement_info* achievement) {
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
 	attron(COLOR_PAIR(1));
@@ -2560,6 +2646,8 @@ void pickup_a_thing(room_info* room, location* place, achievement_info* achievem
 	}
 	attroff(COLOR_PAIR(1));
 }
+
+
 void pickup_and_check_trap_and_health(floor_info* floor, location* place, achievement_info* achievement) {
 	int current;
 	current = current_room(floor, place);
@@ -2572,6 +2660,8 @@ void pickup_and_check_trap_and_health(floor_info* floor, location* place, achiev
 		achievement->movement = 0;
 	}
 }
+
+
 void check_trap_and_distance_in_treasure_room(treasure_info* treasure, location* place, achievement_info* achievement) {
 	check_for_trap(&treasure->room, place, achievement);
 	
@@ -2580,6 +2670,8 @@ void check_trap_and_distance_in_treasure_room(treasure_info* treasure, location*
 		achievement->movement = 0;
 	}
 }
+
+
 void pickup_a_gold_food(room_info* room, location* place, achievement_info* achievement) {
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
 	init_pair(2, COLOR_RED, COLOR_BLACK);
@@ -2614,6 +2706,8 @@ void pickup_a_gold_food(room_info* room, location* place, achievement_info* achi
 	}
 	attroff(COLOR_PAIR(1));
 }
+
+
 void check_for_trap(room_info* room, location* place, achievement_info* achievement) {
 	init_pair(2, COLOR_RED, COLOR_BLACK);
 	attron(COLOR_PAIR(2));
@@ -2627,6 +2721,8 @@ void check_for_trap(room_info* room, location* place, achievement_info* achievem
 	}
 	attroff(COLOR_PAIR(2));
 }
+
+
 void list_of_weapon(weapon_info* weapon) {
 	clear();
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
@@ -2672,6 +2768,8 @@ void list_of_weapon(weapon_info* weapon) {
 		getch();
 	}
 }
+
+
 void list_of_enchant(enchant_info* enchant) {
 	clear();
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
@@ -2752,6 +2850,8 @@ void list_of_enchant(enchant_info* enchant) {
 	}
 	getch();
 }
+
+
 void change_weapon(weapon_info* weapon) {
 	init_color(11, 1000, 843, 0);   // رنگ طلایی 
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
@@ -2828,6 +2928,8 @@ void change_weapon(weapon_info* weapon) {
 	}
 	getch();
 }
+
+
 void show_health_rate(achievement_info* achievement) {
 	clear();
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
@@ -2863,6 +2965,8 @@ void show_health_rate(achievement_info* achievement) {
 	int ch = getch();
 	if(ch == 'F' || ch == 'f') eat_a_meal(achievement);
 }
+
+
 void eat_a_meal(achievement_info* achievement) {
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
 	init_pair(2, COLOR_RED, COLOR_BLACK);
@@ -2895,6 +2999,8 @@ void eat_a_meal(achievement_info* achievement) {
 	getch();
 	show_health_rate(achievement);
 }
+
+
 void cure_when_is_unhungry(achievement_info* achievement) {
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
 	if(achievement->hunger_bar == 20 || achievement->hunger_bar == 19) {
@@ -2929,6 +3035,8 @@ void cure_when_is_unhungry(achievement_info* achievement) {
 	}
 	attroff(COLOR_PAIR(1));
 }
+
+
 void check_hunger_bar(achievement_info* achievement) {
 	if(achievement->hunger_bar >= 8 && achievement->hunger_bar <= 10) {    //in range 8 to 10 -----> 5 units decrease
 		achievement->health -= 5;
@@ -2937,6 +3045,8 @@ void check_hunger_bar(achievement_info* achievement) {
 		achievement->health -= 8;
 	}
 }
+
+
 void set_to_zero(achievement_info* achievement) {
 	achievement->save_gold = 0;
 	achievement->score = 0;
@@ -2957,6 +3067,8 @@ void set_to_zero(achievement_info* achievement) {
 	achievement->food_amount = 0;
 	achievement->movement_unhungry = 0;
 }
+
+
 void print_enemy_conditionally(floor_info* floor) {
 	for(int i = 0; i < 16; i++) {
 		if(floor->enemy[i].health > 0 && floor->enemy[i].room <= floor->open_room) {
@@ -2964,6 +3076,8 @@ void print_enemy_conditionally(floor_info* floor) {
 		}
 	}
 }
+
+
 void move_alive_enemies(floor_info* floor, location* place, achievement_info* achievement) {
 	if(achievement->enchant.active == true && achievement->enchant.current == 's') {   //if speed enchant was active
 		if(achievement->enchant.distance % 2) return;
@@ -2981,6 +3095,8 @@ void move_alive_enemies(floor_info* floor, location* place, achievement_info* ac
 		}
 	}
 }
+
+
 void move_permanently_enemy(floor_info* floor, location* place, int i) {
 	if(floor->enemy[i].place.x > place->x) {        //both x and y will change
 		floor->enemy[i].place.x -= 1;
@@ -3011,6 +3127,8 @@ void move_permanently_enemy(floor_info* floor, location* place, int i) {
 			floor->enemy[i].place.y -= 1;
 	}
 }
+
+
 void move_temporary_enemy(floor_info* floor, location* place, int i) {
 	if(floor->enemy[i].place.x > place->x) {       //just follow till door
 		floor->enemy[i].place.x -= 1;
@@ -3041,6 +3159,8 @@ void move_temporary_enemy(floor_info* floor, location* place, int i) {
 			floor->enemy[i].place.y -= 1;
 	}
 }
+
+
 void move_alive_enemies_in_treasure_room(treasure_info* treasure, location* place, achievement_info* achievement) {
 	if(achievement->enchant.active == true && achievement->enchant.current == 's') {   //if speed enchant was active
 		if(achievement->enchant.distance % 2) return;
@@ -3076,6 +3196,8 @@ void move_alive_enemies_in_treasure_room(treasure_info* treasure, location* plac
 		}
 	}
 }
+
+
 void transfer_snake_to_other_floor(floor_info* p_floor, floor_info* n_floor) {
 	for(int i = 0; i < 16; i++) {
 		if(p_floor->enemy[i].health > 0 && p_floor->enemy[i].room <= p_floor->open_room && p_floor->enemy[i].name == 'S') {
@@ -3088,6 +3210,8 @@ void transfer_snake_to_other_floor(floor_info* p_floor, floor_info* n_floor) {
 		}
 	}
 }
+
+
 void transfer_snake_to_treasure_room(floor_info* p_floor, treasure_info* treasure) {
 	for(int i = 0; i < 16; i++) {
 		if(p_floor->enemy[i].health > 0 && p_floor->enemy[i].room <= p_floor->open_room && p_floor->enemy[i].name == 'S') {
@@ -3100,6 +3224,8 @@ void transfer_snake_to_treasure_room(floor_info* p_floor, treasure_info* treasur
 		}
 	}
 }
+
+
 void check_around_for_enemy(floor_info* floor, location* place, achievement_info* achievement) {
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
 	init_pair(2, COLOR_RED, COLOR_BLACK);
@@ -3161,6 +3287,8 @@ void check_around_for_enemy(floor_info* floor, location* place, achievement_info
 	}
 	attroff(COLOR_PAIR(2));
 }
+
+
 void fight(floor_info* floor, location* place, achievement_info* achievement) { 
 	if(achievement->enchant.active == true && achievement->enchant.current == 'd') {   //Damage Enchant is active
 		fight_with_active_damage_enchant(floor, place, achievement);                   //weapon power is 2 times than usual
@@ -3184,6 +3312,8 @@ void fight(floor_info* floor, location* place, achievement_info* achievement) {
 			break;
 	}
 }
+
+
 void fight_with_active_damage_enchant(floor_info* floor, location* place, achievement_info* achievement) {
 	switch (achievement->weapon.current) {
 		case 'm':                 //Mace  5              //short_range
@@ -3203,6 +3333,8 @@ void fight_with_active_damage_enchant(floor_info* floor, location* place, achiev
 			break;
 	}
 }
+
+
 void shot_with_mace(floor_info* floor, location* place, achievement_info* achievement, int power) {
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
 	init_pair(2, COLOR_RED, COLOR_BLACK);
@@ -3231,6 +3363,8 @@ void shot_with_mace(floor_info* floor, location* place, achievement_info* achiev
 	}
 	attroff(COLOR_PAIR(1));
 }
+
+
 void shot_with_sword(floor_info* floor, location* place, achievement_info* achievement, int power) {
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
 	init_pair(2, COLOR_RED, COLOR_BLACK);
@@ -3259,6 +3393,8 @@ void shot_with_sword(floor_info* floor, location* place, achievement_info* achie
 	}
 	attroff(COLOR_PAIR(1));
 }
+
+
 void shot_with_dagger(floor_info* floor, location* place, achievement_info* achievement, int power) {
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
 	init_pair(2, COLOR_RED, COLOR_BLACK);
@@ -3450,6 +3586,8 @@ void shot_with_dagger(floor_info* floor, location* place, achievement_info* achi
 			return;
 	}
 }
+
+
 void shot_with_wand(floor_info* floor, location* place, achievement_info* achievement, int power) {
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
 	init_pair(2, COLOR_RED, COLOR_BLACK);
@@ -3641,6 +3779,8 @@ void shot_with_wand(floor_info* floor, location* place, achievement_info* achiev
 			return;
 	}
 }
+
+
 void shot_with_arrow(floor_info* floor, location* place, achievement_info* achievement, int power) {
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
 	init_pair(2, COLOR_RED, COLOR_BLACK);
@@ -3832,6 +3972,8 @@ void shot_with_arrow(floor_info* floor, location* place, achievement_info* achie
 			return;
 	}
 }
+
+
 int search_path_direction(floor_info* floor, location* place, int direction, int len) {
 	// output -n --->  hit to enemy(+20)        output n --->  fell down after n
 	location temp;
@@ -3875,6 +4017,8 @@ int search_path_direction(floor_info* floor, location* place, int direction, int
 			break;
 	}
 }
+
+
 char* tell_name_enemy(char abbreviation) {
 	switch (abbreviation) {
 		case 'D':             //Deamon   5
@@ -3889,6 +4033,8 @@ char* tell_name_enemy(char abbreviation) {
 			return "Undeed";
 	}
 }
+
+
 void check_active_enchant(achievement_info* achievement) {
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
 	init_pair(2, COLOR_RED, COLOR_BLACK);
@@ -3912,6 +4058,8 @@ void check_active_enchant(achievement_info* achievement) {
 		return;
 	}
 }
+
+
 int handle_input_key(int ch) {
 	switch (ch) {
 		case ' ':     //fight
@@ -3928,6 +4076,8 @@ int handle_input_key(int ch) {
 			break;
 	}
 }
+
+
 void lose_page(achievement_info* achievement) {
 	init_pair(2, COLOR_RED, COLOR_BLACK);
 	clear();
@@ -3941,6 +4091,8 @@ void lose_page(achievement_info* achievement) {
 		if(ch == 'q') return;
 	}
 }
+
+
 void win_page(achievement_info* achievement) {
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
 	clear();
@@ -3954,6 +4106,8 @@ void win_page(achievement_info* achievement) {
 		if(ch == 'q') return;
 	}
 }
+
+
 void show_help_for_game() {
 	clear();
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
@@ -3969,6 +4123,8 @@ void show_help_for_game() {
 	getch();
 	attroff(COLOR_PAIR(1));
 }
+
+
 bool go_to_treasure_room(floor_info* floor, location* place, int num_floor) {
 	int current = current_room(floor, place);
 	if(current >= 0 && num_floor == 3) {   // a room in last floor
@@ -3981,9 +4137,13 @@ bool go_to_treasure_room(floor_info* floor, location* place, int num_floor) {
 	}
 	else return false;
 }
+
+
 void open_password_door(room_info* room, int door_number) {
 	
 }
+
+
 void check_around_for_enemy_in_treasure_room(treasure_info* treasure, location* place, achievement_info* achievement) {
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
 	init_pair(2, COLOR_RED, COLOR_BLACK);
@@ -4045,6 +4205,8 @@ void check_around_for_enemy_in_treasure_room(treasure_info* treasure, location* 
 	}
 	attroff(COLOR_PAIR(2));
 }
+
+
 void fight_in_treasure_room(treasure_info* treasure, location* place, achievement_info* achievement) { 
 	if(achievement->enchant.active == true && achievement->enchant.current == 'd') {   //Damage Enchant is active
 		fight_with_active_damage_enchant_in_treasure_room(treasure, place, achievement);  //weapon power is 2 times than usual
@@ -4068,6 +4230,8 @@ void fight_in_treasure_room(treasure_info* treasure, location* place, achievemen
 			break;
 	}
 }
+
+
 void fight_with_active_damage_enchant_in_treasure_room(treasure_info* treasure, location* place, achievement_info* achievement) {
 	switch (achievement->weapon.current) {
 		case 'm':                 //Mace  5              //short_range
@@ -4087,6 +4251,8 @@ void fight_with_active_damage_enchant_in_treasure_room(treasure_info* treasure, 
 			break;
 	}
 }
+
+
 void shot_with_mace_in_treasure_room(treasure_info* treasure, location* place, achievement_info* achievement, int power) {
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
 	init_pair(2, COLOR_RED, COLOR_BLACK);
@@ -4115,6 +4281,8 @@ void shot_with_mace_in_treasure_room(treasure_info* treasure, location* place, a
 	}
 	attroff(COLOR_PAIR(1));
 }
+
+
 void shot_with_sword_in_treasure_room(treasure_info* treasure, location* place, achievement_info* achievement, int power) {
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
 	init_pair(2, COLOR_RED, COLOR_BLACK);
@@ -4143,6 +4311,8 @@ void shot_with_sword_in_treasure_room(treasure_info* treasure, location* place, 
 	}
 	attroff(COLOR_PAIR(1));
 }
+
+
 void shot_with_dagger_in_treasure_room(treasure_info* treasure, location* place, achievement_info* achievement, int power) {
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
 	init_pair(2, COLOR_RED, COLOR_BLACK);
@@ -4269,6 +4439,10 @@ void shot_with_dagger_in_treasure_room(treasure_info* treasure, location* place,
 			return;
 	}
 }
+
+
+
+
 void shot_with_wand_in_treasure_room(treasure_info* treasure, location* place, achievement_info* achievement, int power) {
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
 	init_pair(2, COLOR_RED, COLOR_BLACK);
@@ -4395,6 +4569,8 @@ void shot_with_wand_in_treasure_room(treasure_info* treasure, location* place, a
 			return;
 	}
 }
+
+
 void shot_with_arrow_in_treasure_room(treasure_info* treasure, location* place, achievement_info* achievement, int power) {
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
 	init_pair(2, COLOR_RED, COLOR_BLACK);
@@ -4521,6 +4697,8 @@ void shot_with_arrow_in_treasure_room(treasure_info* treasure, location* place, 
 			return;
 	}
 }
+
+
 int search_path_direction_in_treasure_room(treasure_info* treasure, location* place, int direction, int len) {
 	// output -n --->  hit to enemy(+20)        output n --->  fell down after n
 	location temp;
@@ -4565,6 +4743,7 @@ int search_path_direction_in_treasure_room(treasure_info* treasure, location* pl
 	}
 }
 
+
 bool exit_the_game(achievement_info* achievement) {
 	init_pair(2, COLOR_RED, COLOR_BLACK);
 	clear();
@@ -4581,6 +4760,8 @@ bool exit_the_game(achievement_info* achievement) {
 			return false;
 	}
 }
+
+
 bool win_the_game(treasure_info* treasure, location* place) {
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
 	init_pair(2, COLOR_RED, COLOR_BLACK);
@@ -4600,12 +4781,16 @@ bool win_the_game(treasure_info* treasure, location* place) {
 	}
 	return false;
 }
+
+
 bool lose_the_game(achievement_info* achievement) {
 	if(achievement->health <= 0 || achievement->hunger_bar <= 0) {
 		return true;
 	}
 	else return false;
 }
+
+
 void score_kill_enemy(achievement_info* achievement, char name, int n) {
 	switch (name) {
 		case 'D':        //Deamon
@@ -4625,10 +4810,14 @@ void score_kill_enemy(achievement_info* achievement, char name, int n) {
 			break;
 	}
 }
+
+
 void score_for_gold(achievement_info* achievement) {
 	int power = 7 + -(difficulty)*3;         //Easy----> 4x       Medium----->7x    Hard----->10x
 	achievement->score += power * achievement->save_gold;    
 }
+
+
 void score_for_win_treasure_room(achievement_info* achievement) {
 	srand(time(NULL));
 	achievement->score += 300;                       //score for win the game in treasure room   300
